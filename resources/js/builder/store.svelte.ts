@@ -605,6 +605,81 @@ export class BuilderStore {
     this.#markDirty();
   }
 
+  // -- field validators -------------------------------------------------------
+
+  /** Append a validator of a given type to a field. */
+  addValidator(name: string, type: string): void {
+    const el = this.findElement(name)?.el;
+    if (!el) {
+      return;
+    }
+    // Re-read after ensuring the array exists: assigning `[]` into the $state
+    // proxy stores a *proxied* array, but the assignment expression yields the
+    // raw one — pushing to that raw array would not be tracked.
+    if (!Array.isArray(el.validators)) {
+      el.validators = [];
+    }
+    (el.validators as Array<Record<string, unknown>>).push({ type });
+    this.#markDirty();
+  }
+
+  /** Patch one property of a validator (empty value deletes the key). */
+  setValidatorProp(name: string, index: number, key: string, value: unknown): void {
+    const list = this.findElement(name)?.el.validators as Array<Record<string, unknown>> | undefined;
+    if (!list?.[index]) {
+      return;
+    }
+    assignPlain(list[index], key, value);
+    this.#markDirty();
+  }
+
+  removeValidator(name: string, index: number): void {
+    const el = this.findElement(name)?.el;
+    const list = el?.validators as unknown[] | undefined;
+    if (!el || !list) {
+      return;
+    }
+    list.splice(index, 1);
+    if (list.length === 0) {
+      delete el.validators;
+    }
+    this.#markDirty();
+  }
+
+  // -- survey completion conditions -------------------------------------------
+
+  /** Append a per-condition thank-you page (expression → html). */
+  addCompletedCondition(): void {
+    // See addValidator: re-read after ensuring the array exists so we push into
+    // the tracked proxy, not the raw array the assignment expression returns.
+    if (!Array.isArray(this.schema.completedHtmlOnCondition)) {
+      this.schema.completedHtmlOnCondition = [];
+    }
+    (this.schema.completedHtmlOnCondition as Array<Record<string, unknown>>).push({ expression: '', html: '' });
+    this.#markDirty();
+  }
+
+  setCompletedConditionProp(index: number, key: string, value: unknown): void {
+    const list = this.schema.completedHtmlOnCondition as Array<Record<string, unknown>> | undefined;
+    if (!list?.[index]) {
+      return;
+    }
+    assignPlain(list[index], key, value);
+    this.#markDirty();
+  }
+
+  removeCompletedCondition(index: number): void {
+    const list = this.schema.completedHtmlOnCondition as unknown[] | undefined;
+    if (!list) {
+      return;
+    }
+    list.splice(index, 1);
+    if (list.length === 0) {
+      delete this.schema.completedHtmlOnCondition;
+    }
+    this.#markDirty();
+  }
+
   // -- pages ------------------------------------------------------------------
 
   addPage(): void {

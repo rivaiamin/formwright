@@ -83,6 +83,22 @@
       </select>
     </div>
 
+    <!-- NAVIGATION -->
+    <p class="panel__section">Navigation</p>
+    <div class="field">
+      <label class="field__label" for="page-nav">Navigation buttons</label>
+      <select
+        id="page-nav"
+        data-testid="page-nav"
+        value={typeof page.navigationButtonsVisibility === 'string' ? page.navigationButtonsVisibility : 'inherit'}
+        onchange={(e) => store.setPageProp(page.name, 'navigationButtonsVisibility', e.currentTarget.value === 'inherit' ? '' : e.currentTarget.value)}
+      >
+        <option value="inherit">Inherit from form</option>
+        <option value="show">Always show</option>
+        <option value="hide">Hide on this page</option>
+      </select>
+    </div>
+
     <!-- ADVANCED -->
     <button
       type="button"

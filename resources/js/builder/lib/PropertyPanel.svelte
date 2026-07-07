@@ -7,6 +7,7 @@
   import PageSettings from './PageSettings.svelte';
   import ScoringEditor from './ScoringEditor.svelte';
   import SurveySettings from './SurveySettings.svelte';
+  import ValidatorEditor from './ValidatorEditor.svelte';
 
   interface Props {
     store: BuilderStore;
@@ -17,18 +18,52 @@
   /** Keys rendered explicitly under BASICS (so they don't repeat in ADVANCED). */
   const BASIC_KEYS = ['title', 'html', 'imageLink', 'altText', 'description', 'isRequired'];
 
+  /** Keys rendered explicitly under APPEARANCE (so they don't repeat in ADVANCED). */
+  const APPEARANCE_KEYS = [
+    'placeholder',
+    'titleLocation',
+    'descriptionLocation',
+    'startWithNewLine',
+    'width',
+    'minWidth',
+    'maxWidth',
+    'defaultValueExpression',
+  ];
+
   let el = $derived(store.selected);
   let block = $derived(el ? resolveBlock(el) : null);
   let locked = $derived(el != null && block == null);
   let showLogic = $state(false);
   let showScoring = $state(false);
+  let showValidation = $state(false);
+  let showAppearance = $state(false);
   let showAdvanced = $state(false);
+
+  const TITLE_LOCATIONS = [
+    { value: 'default', label: 'Default' },
+    { value: 'top', label: 'Top' },
+    { value: 'bottom', label: 'Bottom' },
+    { value: 'left', label: 'Left' },
+    { value: 'hidden', label: 'Hidden' },
+  ];
 
   /** Input types (as opposed to display-only html/image) carry an isRequired prop. */
   let isInput = $derived(has('isRequired'));
+  /** SurveyJS types that render a placeholder. */
+  let supportsPlaceholder = $derived(
+    !!el && ['text', 'comment', 'dropdown', 'tagbox', 'multipletext'].includes(el.type),
+  );
   let nameDesc = $derived(descByKey('name'));
   let advancedList = $derived(
-    block ? block.properties.filter((p) => p.key !== 'choices' && p.key !== 'name' && !BASIC_KEYS.includes(p.key)) : [],
+    block
+      ? block.properties.filter(
+          (p) =>
+            p.key !== 'choices' &&
+            p.key !== 'name' &&
+            !BASIC_KEYS.includes(p.key) &&
+            !APPEARANCE_KEYS.includes(p.key),
+        )
+      : [],
   );
 
   /** Build an `onset` handler that writes a localized prop on an element. */
@@ -158,6 +193,16 @@
       {@render control(el, descByKey('choices')!)}
     {/if}
 
+    <!-- VALIDATION -->
+    {#if isInput}
+      <button type="button" class="panel__disc" data-testid="validation-toggle" onclick={() => (showValidation = !showValidation)}>
+        {showValidation ? '▾' : '▸'} Validation
+      </button>
+      {#if showValidation}
+        <ValidatorEditor {store} />
+      {/if}
+    {/if}
+
     <!-- LOGIC -->
     <button type="button" class="panel__disc" data-testid="logic-toggle" onclick={() => (showLogic = !showLogic)}>
       {showLogic ? '▾' : '▸'} Logic
@@ -172,6 +217,68 @@
     </button>
     {#if showScoring}
       <ScoringEditor {store} />
+    {/if}
+
+    <!-- APPEARANCE -->
+    {#if isInput}
+      <button type="button" class="panel__disc" data-testid="appearance-toggle" onclick={() => (showAppearance = !showAppearance)}>
+        {showAppearance ? '▾' : '▸'} Appearance &amp; layout
+      </button>
+      {#if showAppearance}
+        {#if supportsPlaceholder}
+          <LocalizedInput
+            {store}
+            target={el}
+            propKey="placeholder"
+            label="Placeholder"
+            onset={loc(el, 'placeholder')}
+          />
+        {/if}
+        <div class="field">
+          <label class="field__label" for="prop-titleLocation">Title position</label>
+          <select
+            id="prop-titleLocation"
+            data-testid="title-location"
+            value={typeof el.titleLocation === 'string' ? el.titleLocation : 'default'}
+            onchange={(e) => store.setProp(el.name, 'titleLocation', e.currentTarget.value === 'default' ? '' : e.currentTarget.value)}
+          >
+            {#each TITLE_LOCATIONS as opt (opt.value)}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
+        <label class="field__check">
+          <input
+            type="checkbox"
+            data-testid="inline-toggle"
+            checked={el.startWithNewLine === false}
+            onchange={(e) => store.setProp(el.name, 'startWithNewLine', e.currentTarget.checked ? false : '')}
+          />
+          Display inline with previous field
+        </label>
+        <p class="panel__help">Two fields side by side when both are inline and a width is set.</p>
+        <div class="field">
+          <label class="field__label" for="prop-width">Width</label>
+          <input
+            id="prop-width"
+            type="text"
+            data-testid="field-width"
+            placeholder="e.g. 50% or 200px"
+            value={typeof el.width === 'string' ? el.width : ''}
+            oninput={(e) => store.setProp(el.name, 'width', e.currentTarget.value)}
+          />
+        </div>
+        <div class="field">
+          <label class="field__label" for="prop-defaultValueExpression">Default value expression</label>
+          <input
+            id="prop-defaultValueExpression"
+            type="text"
+            placeholder="e.g. {'{firstName}'} + ' ' + {'{lastName}'}"
+            value={typeof el.defaultValueExpression === 'string' ? el.defaultValueExpression : ''}
+            oninput={(e) => store.setProp(el.name, 'defaultValueExpression', e.currentTarget.value)}
+          />
+        </div>
+      {/if}
     {/if}
 
     <!-- ADVANCED -->
