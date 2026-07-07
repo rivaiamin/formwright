@@ -307,6 +307,94 @@ export const registry: BlockDefinition[] = [
     ],
     matches: (el) => el.type === 'signaturepad',
   },
+
+  // 14. Ranking (ordered choices)
+  {
+    id: 'ranking',
+    label: 'Ranking',
+    icon: 'ranking',
+    surveyType: 'ranking',
+    factory: (name) => ({ type: 'ranking', name, choices: [] }),
+    properties: [...commonProps(), choicesProp],
+    matches: (el) => el.type === 'ranking',
+  },
+
+  // 15. Tag box (multi-select dropdown)
+  {
+    id: 'tagbox',
+    label: 'Multi-select',
+    icon: 'tags',
+    surveyType: 'tagbox',
+    factory: (name) => ({ type: 'tagbox', name, choices: [] }),
+    properties: [
+      ...commonProps(),
+      choicesProp,
+      { key: 'placeholder', label: 'Placeholder', kind: 'localizedText', appliesToLocale: true, advanced: true },
+    ],
+    matches: (el) => el.type === 'tagbox',
+  },
+
+  // 16. Multiple text (a group of labelled single-line inputs)
+  {
+    id: 'multiple_text',
+    label: 'Multiple text',
+    icon: 'multitext',
+    surveyType: 'multipletext',
+    factory: (name) => ({
+      type: 'multipletext',
+      name,
+      items: [{ name: 'item1', title: { default: 'Item 1' } }],
+    }),
+    properties: [...commonProps()],
+    matches: (el) => el.type === 'multipletext',
+  },
+
+  // 17. Matrix (single-select grid: rows × columns)
+  {
+    id: 'matrix',
+    label: 'Matrix',
+    icon: 'matrix',
+    surveyType: 'matrix',
+    factory: (name) => ({
+      type: 'matrix',
+      name,
+      columns: [
+        { value: 'col1', text: { default: 'Column 1' } },
+        { value: 'col2', text: { default: 'Column 2' } },
+      ],
+      rows: [
+        { value: 'row1', text: { default: 'Row 1' } },
+        { value: 'row2', text: { default: 'Row 2' } },
+      ],
+    }),
+    properties: [...commonProps()],
+    matches: (el) => el.type === 'matrix',
+  },
+
+  // 18. Expression (read-only computed display)
+  {
+    id: 'expression',
+    label: 'Expression',
+    icon: 'sigma',
+    surveyType: 'expression',
+    factory: (name) => ({ type: 'expression', name, expression: '' }),
+    properties: [
+      NAME_PROP,
+      { key: 'title', label: 'Label', kind: 'localizedText', appliesToLocale: true },
+      { key: 'expression', label: 'Expression', kind: 'text' },
+      {
+        key: 'displayStyle', label: 'Display as', kind: 'select', advanced: true,
+        options: [
+          { value: 'none', label: 'Plain' },
+          { value: 'decimal', label: 'Decimal' },
+          { value: 'currency', label: 'Currency' },
+          { value: 'percent', label: 'Percent' },
+          { value: 'date', label: 'Date' },
+        ],
+      },
+    ],
+    matches: (el) => el.type === 'expression',
+  },
 ];
 
 // ---- Import / lookup helpers ------------------------------------------------

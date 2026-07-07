@@ -3,7 +3,9 @@
   // way fields are. Every control maps to a native SurveyJS survey property, so
   // Preview and the public form pick them up with no extra wiring.
   import { localizedValue, type BuilderStore } from '../store.svelte';
+  import AutomationEditor from './AutomationEditor.svelte';
   import LocalizedInput from './LocalizedInput.svelte';
+  import ThemeEditor from './ThemeEditor.svelte';
 
   interface Props {
     store: BuilderStore;
@@ -14,6 +16,8 @@
   const schema = $derived(store.schema);
 
   let showBehavior = $state(false);
+  let showAutomation = $state(false);
+  let showTheme = $state(false);
 
   /** A select whose default value is stored as "absent" to keep the JSON clean. */
   function pick(key: string, value: string, fallback: string): void {
@@ -184,6 +188,41 @@
     </select>
   </div>
 
+  <label class="field__check">
+    <input
+      type="checkbox"
+      data-testid="survey-toc"
+      checked={boolVal('showTOC', false)}
+      onchange={(e) => setBool('showTOC', e.currentTarget.checked, false)}
+    />
+    Show a table of contents
+  </label>
+  {#if boolVal('showTOC', false)}
+    <div class="field">
+      <label class="field__label" for="survey-tocloc">Table of contents position</label>
+      <select id="survey-tocloc" value={val('tocLocation', 'left')} onchange={(e) => pick('tocLocation', e.currentTarget.value, 'left')}>
+        <option value="left">Left</option>
+        <option value="right">Right</option>
+      </select>
+    </div>
+  {/if}
+
+  <!-- START PAGE -->
+  <p class="panel__section">Start page</p>
+  <label class="field__check">
+    <input
+      type="checkbox"
+      data-testid="first-page-started"
+      checked={boolVal('firstPageIsStarted', false)}
+      onchange={(e) => setBool('firstPageIsStarted', e.currentTarget.checked, false)}
+    />
+    Use the first page as a welcome screen
+  </label>
+  <p class="panel__help">The first page shows on its own with a Start button before the rest of the form.</p>
+  {#if boolVal('firstPageIsStarted', false)}
+    <LocalizedInput {store} target={schema} propKey="startSurveyText" label="Start button" onset={setLoc('startSurveyText')} />
+  {/if}
+
   <!-- NAVIGATION -->
   <p class="panel__section">Navigation buttons</p>
   <div class="field">
@@ -263,6 +302,22 @@
       </div>
     {/each}
   </div>
+
+  <!-- THEME -->
+  <button type="button" class="panel__disc" data-testid="theme-toggle" onclick={() => (showTheme = !showTheme)}>
+    {showTheme ? '▾' : '▸'} Theme &amp; colours
+  </button>
+  {#if showTheme}
+    <ThemeEditor {store} />
+  {/if}
+
+  <!-- AUTOMATION -->
+  <button type="button" class="panel__disc" data-testid="automation-toggle" onclick={() => (showAutomation = !showAutomation)}>
+    {showAutomation ? '▾' : '▸'} Automation
+  </button>
+  {#if showAutomation}
+    <AutomationEditor {store} />
+  {/if}
 
   <!-- VALIDATION & BEHAVIOR -->
   <button type="button" class="panel__disc" data-testid="behavior-toggle" onclick={() => (showBehavior = !showBehavior)}>

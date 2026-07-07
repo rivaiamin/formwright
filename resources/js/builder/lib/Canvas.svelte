@@ -112,6 +112,9 @@
           {localizedValue(pv.page.title, store.editingLocale) || pv.page.name}
         </button>
         <span class="page__count">{pv.page.elements.length} field(s)</span>
+        {#if board.indexOf(pv) === 0 && store.schema.firstPageIsStarted}
+          <span class="page__badge" title="Shown as a welcome screen with a Start button">Start page</span>
+        {/if}
         <button
           type="button"
           class="page__cog"
@@ -210,6 +213,16 @@
   .page__count {
     font-size: 0.72rem;
     opacity: 0.55;
+  }
+  .page__badge {
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #b45309;
+    background: color-mix(in srgb, #f59e0b 16%, transparent);
+    border-radius: 0.35rem;
+    padding: 0.1rem 0.4rem;
   }
   .page__cog {
     margin-inline-start: auto;

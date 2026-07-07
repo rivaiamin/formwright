@@ -14,7 +14,7 @@
   import { renderSurvey } from 'survey-js-ui';
 
   import { isRtlLocale, type BuilderStore } from '../store.svelte';
-  import { registerCustomProperties } from '../survey-setup';
+  import { applyStoredTheme, registerCustomProperties } from '../survey-setup';
 
   interface Props {
     store: BuilderStore;
@@ -52,6 +52,7 @@
 
     const model = new Model(json);
     model.locale = locale === 'default' ? '' : locale;
+    applyStoredTheme(model, json);
 
     // Live quiz tally: sum points of scored questions the respondent got right,
     // using survey-core's own answer comparison (isAnswerCorrect) and our custom

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { resolveBlock, type PropertyDescriptor, type SurveyElement } from '../../schema/type-registry';
   import { localizedValue, type BuilderStore } from '../store.svelte';
+  import ItemListEditor from './ItemListEditor.svelte';
   import LocalizedInput from './LocalizedInput.svelte';
   import LogicEditor from './LogicEditor.svelte';
   import LogicMap from './LogicMap.svelte';
@@ -52,6 +53,10 @@
   /** SurveyJS types that render a placeholder. */
   let supportsPlaceholder = $derived(
     !!el && ['text', 'comment', 'dropdown', 'tagbox', 'multipletext'].includes(el.type),
+  );
+  /** Where a choice field's options come from. */
+  let choiceSource = $derived<'static' | 'question' | 'url'>(
+    el == null ? 'static' : 'choicesFromQuestion' in el ? 'question' : el.choicesByUrl ? 'url' : 'static',
   );
   let nameDesc = $derived(descByKey('name'));
   let advancedList = $derived(
@@ -190,7 +195,76 @@
     <!-- OPTIONS -->
     {#if has('choices')}
       <p class="panel__section">Options</p>
-      {@render control(el, descByKey('choices')!)}
+      <div class="field">
+        <label class="field__label" for="choice-source">Choices from</label>
+        <select
+          id="choice-source"
+          data-testid="choice-source"
+          value={choiceSource}
+          onchange={(e) => store.setChoiceSource(el.name, e.currentTarget.value as 'static' | 'question' | 'url')}
+        >
+          <option value="static">A fixed list</option>
+          <option value="question">Another question’s answers</option>
+          <option value="url">A web service (URL)</option>
+        </select>
+      </div>
+
+      {#if choiceSource === 'static'}
+        {@render control(el, descByKey('choices')!)}
+      {:else if choiceSource === 'question'}
+        {@const others = store.choiceQuestionNames(el.name)}
+        {#if others.length === 0}
+          <p class="panel__help">Add another choice question first to carry its answers forward.</p>
+        {:else}
+          <div class="field">
+            <label class="field__label" for="cfq">Copy answers from</label>
+            <select id="cfq" data-testid="choices-from-question" value={String(el.choicesFromQuestion ?? '')} onchange={(e) => store.setProp(el.name, 'choicesFromQuestion', e.currentTarget.value)}>
+              {#each others as n (n)}<option value={n}>{n}</option>{/each}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label" for="cfqmode">Which answers</label>
+            <select id="cfqmode" value={String(el.choicesFromQuestionMode ?? 'all')} onchange={(e) => store.setProp(el.name, 'choicesFromQuestionMode', e.currentTarget.value === 'all' ? '' : e.currentTarget.value)}>
+              <option value="all">All options</option>
+              <option value="selected">Only selected</option>
+              <option value="unselected">Only unselected</option>
+            </select>
+          </div>
+        {/if}
+      {:else if choiceSource === 'url'}
+        {@const cbu = (el.choicesByUrl as Record<string, unknown> | undefined) ?? {}}
+        <div class="field">
+          <label class="field__label" for="cbu-url">Web service URL</label>
+          <input id="cbu-url" type="text" data-testid="choices-url" placeholder="https://api.example.com/options" value={String(cbu.url ?? '')} oninput={(e) => store.setChoicesByUrlProp(el.name, 'url', e.currentTarget.value)} />
+        </div>
+        <div class="field">
+          <label class="field__label" for="cbu-path">Path to the list (optional)</label>
+          <input id="cbu-path" type="text" placeholder="e.g. data.items" value={String(cbu.path ?? '')} oninput={(e) => store.setChoicesByUrlProp(el.name, 'path', e.currentTarget.value)} />
+        </div>
+        <div class="field">
+          <label class="field__label" for="cbu-value">Value property</label>
+          <input id="cbu-value" type="text" placeholder="e.g. id" value={String(cbu.valueName ?? '')} oninput={(e) => store.setChoicesByUrlProp(el.name, 'valueName', e.currentTarget.value)} />
+        </div>
+        <div class="field">
+          <label class="field__label" for="cbu-title">Label property</label>
+          <input id="cbu-title" type="text" placeholder="e.g. name" value={String(cbu.titleName ?? '')} oninput={(e) => store.setChoicesByUrlProp(el.name, 'titleName', e.currentTarget.value)} />
+        </div>
+        <p class="panel__help">Options are loaded from this endpoint when the form opens.</p>
+      {/if}
+    {/if}
+
+    <!-- MATRIX rows/columns -->
+    {#if block?.id === 'matrix'}
+      <p class="panel__section">Rows</p>
+      <ItemListEditor {store} element={el} listKey="rows" primaryKey="value" labelKey="text" noun="Row" />
+      <p class="panel__section">Columns</p>
+      <ItemListEditor {store} element={el} listKey="columns" primaryKey="value" labelKey="text" noun="Column" />
+    {/if}
+
+    <!-- MULTIPLE TEXT items -->
+    {#if block?.id === 'multiple_text'}
+      <p class="panel__section">Items</p>
+      <ItemListEditor {store} element={el} listKey="items" primaryKey="name" labelKey="title" noun="Item" />
     {/if}
 
     <!-- VALIDATION -->

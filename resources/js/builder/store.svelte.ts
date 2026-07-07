@@ -533,7 +533,12 @@ export class BuilderStore {
     if (!el) {
       return;
     }
-    const choices = (el.choices ??= []) as Array<{ value: string; text?: LocalizedString }>;
+    // Re-read after ensuring the array exists (the assignment expression yields
+    // the raw array, not the tracked $state proxy — see addValidator).
+    if (!Array.isArray(el.choices)) {
+      el.choices = [];
+    }
+    const choices = el.choices as Array<{ value: string; text?: LocalizedString }>;
     const value = `option_${choices.length + 1}`;
     choices.push({ value, text: { default: `Option ${choices.length + 1}` } });
     this.#markDirty();
@@ -549,7 +554,10 @@ export class BuilderStore {
     if (!el) {
       return;
     }
-    const choices = (el.choices ??= []) as Array<{ value: string; text?: LocalizedString }>;
+    if (!Array.isArray(el.choices)) {
+      el.choices = [];
+    }
+    const choices = el.choices as Array<{ value: string; text?: LocalizedString }>;
     const taken = new Set(choices.map((c) => c.value));
     const base = slugify(label);
     let value = base;
@@ -602,6 +610,118 @@ export class BuilderStore {
       return;
     }
     choices.splice(index, 1);
+    this.#markDirty();
+  }
+
+  // -- dynamic choice sources (choicesByUrl / choicesFromQuestion) -------------
+
+  /** Names of choice-based questions (for carry-forward), excluding one. */
+  choiceQuestionNames(exclude?: string): string[] {
+    const CHOICE_TYPES = new Set(['radiogroup', 'checkbox', 'dropdown', 'tagbox', 'ranking', 'imagepicker']);
+    const out: string[] = [];
+    for (const page of this.schema.pages) {
+      for (const el of page.elements ?? []) {
+        if (CHOICE_TYPES.has(el.type) && el.name !== exclude) {
+          out.push(el.name);
+        }
+      }
+    }
+    return out;
+  }
+
+  /** Switch where a field's choices come from, clearing the other sources. */
+  setChoiceSource(name: string, source: 'static' | 'question' | 'url'): void {
+    const el = this.findElement(name)?.el;
+    if (!el) {
+      return;
+    }
+    if (source === 'static') {
+      delete el.choicesByUrl;
+      delete el.choicesFromQuestion;
+      delete el.choicesFromQuestionMode;
+    } else if (source === 'url') {
+      // A dynamic source supersedes any manual list; drop it for clean JSON.
+      delete el.choices;
+      delete el.choicesFromQuestion;
+      delete el.choicesFromQuestionMode;
+      if (!el.choicesByUrl || typeof el.choicesByUrl !== 'object') {
+        el.choicesByUrl = {};
+      }
+    } else {
+      delete el.choices;
+      delete el.choicesByUrl;
+      if (typeof el.choicesFromQuestion !== 'string') {
+        el.choicesFromQuestion = this.choiceQuestionNames(name)[0] ?? '';
+      }
+    }
+    this.#markDirty();
+  }
+
+  /** Patch one property of `choicesByUrl` (url/path/valueName/titleName). */
+  setChoicesByUrlProp(name: string, key: string, value: unknown): void {
+    const el = this.findElement(name)?.el;
+    if (!el) {
+      return;
+    }
+    if (!el.choicesByUrl || typeof el.choicesByUrl !== 'object') {
+      el.choicesByUrl = {};
+    }
+    assignPlain(el.choicesByUrl as Record<string, unknown>, key, value);
+    this.#markDirty();
+  }
+
+  // -- generic sub-item lists (matrix rows/columns, multipletext items) --------
+
+  /** Append an item to a named array on a field (e.g. `rows`, `columns`, `items`). */
+  addListItem(name: string, key: string, item: Record<string, unknown>): void {
+    const el = this.findElement(name)?.el;
+    if (!el) {
+      return;
+    }
+    if (!Array.isArray(el[key])) {
+      el[key] = [];
+    }
+    (el[key] as Array<Record<string, unknown>>).push(item);
+    this.#markDirty();
+  }
+
+  /** Set a plain property on one list item (empty value deletes the key). */
+  setListItemProp(name: string, key: string, index: number, prop: string, value: unknown): void {
+    const list = this.findElement(name)?.el[key] as Array<Record<string, unknown>> | undefined;
+    if (!list?.[index]) {
+      return;
+    }
+    assignPlain(list[index], prop, value);
+    this.#markDirty();
+  }
+
+  /** Set a localized property on one list item, keeping a `default` present. */
+  setListItemLocalized(
+    name: string,
+    key: string,
+    index: number,
+    prop: string,
+    value: string,
+    locale: string = this.editingLocale,
+  ): void {
+    const list = this.findElement(name)?.el[key] as Array<Record<string, unknown>> | undefined;
+    if (!list?.[index]) {
+      return;
+    }
+    assignLocalized(list[index], prop, value, locale);
+    this.#markDirty();
+  }
+
+  removeListItem(name: string, key: string, index: number): void {
+    const el = this.findElement(name)?.el;
+    const list = el?.[key] as unknown[] | undefined;
+    if (!el || !list) {
+      return;
+    }
+    list.splice(index, 1);
+    if (list.length === 0) {
+      delete el[key];
+    }
     this.#markDirty();
   }
 
@@ -677,6 +797,100 @@ export class BuilderStore {
     if (list.length === 0) {
       delete this.schema.completedHtmlOnCondition;
     }
+    this.#markDirty();
+  }
+
+  // -- survey-root lists (triggers, calculatedValues) -------------------------
+
+  /** Append an item to a named array on the survey root. */
+  addSurveyListItem(key: string, item: Record<string, unknown>): void {
+    if (!Array.isArray(this.schema[key])) {
+      this.schema[key] = [];
+    }
+    (this.schema[key] as Array<Record<string, unknown>>).push(item);
+    this.#markDirty();
+  }
+
+  /** Set a plain property on one survey-root list item (empty value deletes it). */
+  setSurveyListItemProp(key: string, index: number, prop: string, value: unknown): void {
+    const list = this.schema[key] as Array<Record<string, unknown>> | undefined;
+    if (!list?.[index]) {
+      return;
+    }
+    assignPlain(list[index], prop, value);
+    this.#markDirty();
+  }
+
+  removeSurveyListItem(key: string, index: number): void {
+    const list = this.schema[key] as unknown[] | undefined;
+    if (!list) {
+      return;
+    }
+    list.splice(index, 1);
+    if (list.length === 0) {
+      delete this.schema[key];
+    }
+    this.#markDirty();
+  }
+
+  // -- theme (survey-core theme object under schema.theme) ---------------------
+
+  /** Ensure `schema.theme` exists and return the tracked proxy. */
+  #theme(): Record<string, unknown> {
+    if (!this.schema.theme || typeof this.schema.theme !== 'object' || Array.isArray(this.schema.theme)) {
+      this.schema.theme = {};
+    }
+    return this.schema.theme as Record<string, unknown>;
+  }
+
+  /** Drop `schema.theme` when it has become empty, to keep exported JSON clean. */
+  #pruneTheme(): void {
+    const t = this.schema.theme as Record<string, unknown> | undefined;
+    if (t && Object.keys(t).length === 0) {
+      delete this.schema.theme;
+    }
+  }
+
+  /** Set a top-level theme property (colorPalette, isPanelless, themeName). */
+  setThemeProp(key: string, value: unknown): void {
+    const theme = this.#theme();
+    assignPlain(theme, key, value);
+    this.#pruneTheme();
+    this.#markDirty();
+  }
+
+  /** Set a single CSS variable in the theme (empty value removes it). */
+  setThemeVar(name: string, value: unknown): void {
+    const theme = this.#theme();
+    if (!theme.cssVariables || typeof theme.cssVariables !== 'object') {
+      theme.cssVariables = {};
+    }
+    const vars = theme.cssVariables as Record<string, unknown>;
+    assignPlain(vars, name, value);
+    if (Object.keys(vars).length === 0) {
+      delete theme.cssVariables;
+    }
+    this.#pruneTheme();
+    this.#markDirty();
+  }
+
+  /** Read a theme CSS variable (or ''). */
+  themeVar(name: string): string {
+    const vars = (this.schema.theme as Record<string, unknown> | undefined)?.cssVariables as
+      | Record<string, unknown>
+      | undefined;
+    const v = vars?.[name];
+    return typeof v === 'string' ? v : '';
+  }
+
+  /** Read a top-level theme property (or ''). */
+  themeProp(name: string): unknown {
+    return (this.schema.theme as Record<string, unknown> | undefined)?.[name];
+  }
+
+  /** Clear the whole theme back to survey-core defaults. */
+  resetTheme(): void {
+    delete this.schema.theme;
     this.#markDirty();
   }
 
@@ -789,7 +1003,8 @@ function resolveGroup(label: string, ids: string[]): PaletteGroup {
  */
 export const PALETTE_GROUPS: PaletteGroup[] = [
   resolveGroup('Essentials', ['short_text', 'long_text', 'number', 'date']),
-  resolveGroup('Choices', ['single_choice', 'multiple_choice', 'dropdown', 'boolean', 'rating']),
-  resolveGroup('Content', ['statement', 'image']),
+  resolveGroup('Choices', ['single_choice', 'multiple_choice', 'dropdown', 'tagbox', 'boolean', 'rating', 'ranking']),
+  resolveGroup('Grids', ['matrix', 'multiple_text']),
+  resolveGroup('Content', ['statement', 'image', 'expression']),
   resolveGroup('Uploads', ['file', 'signature']),
 ];

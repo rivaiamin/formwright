@@ -11,7 +11,7 @@ import 'survey-core/defaultV2.min.css';
 import 'survey-core/survey.i18n';
 import { renderSurvey } from 'survey-js-ui';
 
-import { registerCustomProperties } from '../builder/survey-setup';
+import { applyStoredTheme, registerCustomProperties } from '../builder/survey-setup';
 
 interface MountOptions {
   schema: Record<string, unknown>;
@@ -35,6 +35,7 @@ export function mount(el: HTMLElement, opts: MountOptions): void {
   if (opts.locale && opts.locale !== 'default') {
     model.locale = opts.locale;
   }
+  applyStoredTheme(model, opts.schema);
 
   model.onComplete.add(async (sender) => {
     try {

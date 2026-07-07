@@ -22,6 +22,11 @@
     image: 'M4 5h16v14H4zM4 15l4-4 3 3 4-5 5 6M9 9a1.2 1.2 0 1 0 0-2.4A1.2 1.2 0 0 0 9 9z',
     upload: 'M12 15V4M8 8l4-4 4 4M5 15v4h14v-4',
     'pen-tool': 'M4 20s3-1 7-5l5-5-2-2-5 5c-4 4-5 7-5 7zM14 6l4 4',
+    ranking: 'M9 6h11M9 12h11M9 18h11M4 5v4M4 5H3M4 9H3M5 9H3M4 13l-1 3h2l-1 2',
+    tags: 'M3 12l7-7h6l2 2v6l-7 7zM15 8h.01',
+    multitext: 'M4 6h16M4 12h16M4 18h10M4 6v12',
+    matrix: 'M4 4h16v16H4zM4 10h16M4 15h16M10 4v16M15 4v16',
+    sigma: 'M18 5H7l6 7-6 7h11',
   };
 
   let d = $derived(PATHS[name] ?? 'M5 5h14v14H5z');

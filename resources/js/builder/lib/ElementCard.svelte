@@ -22,6 +22,17 @@
     return (element.choices as Choice[] | undefined) ?? [];
   }
 
+  type ItemValue = { value: string; text?: unknown };
+  function rows(): ItemValue[] {
+    return (element.rows as ItemValue[] | undefined) ?? [];
+  }
+  function columns(): ItemValue[] {
+    return (element.columns as ItemValue[] | undefined) ?? [];
+  }
+  function items(): Array<{ name: string; title?: unknown }> {
+    return (element.items as Array<{ name: string; title?: unknown }> | undefined) ?? [];
+  }
+
   function stop(e: Event): void {
     e.stopPropagation();
   }
@@ -87,10 +98,52 @@
           {/each}
           <button type="button" class="prev-add" onclick={(e) => (stop(e), store.addChoice(element.name))}>+ Add choice</button>
         </div>
-      {:else if block?.id === 'dropdown'}
+      {:else if block?.id === 'dropdown' || block?.id === 'tagbox'}
         <div class="prev-input prev-input--select">
-          {choices().length ? localizedValue(choices()[0].text as never, locale) || choices()[0].value : 'Select…'}
+          {#if block?.id === 'tagbox' && choices().length}
+            <span class="prev-tag">{localizedValue(choices()[0].text as never, locale) || choices()[0].value} ×</span>
+          {:else}
+            {choices().length ? localizedValue(choices()[0].text as never, locale) || choices()[0].value : 'Select…'}
+          {/if}
           <span aria-hidden="true">▾</span>
+        </div>
+      {:else if block?.id === 'ranking'}
+        <div class="prev-choices">
+          {#each choices() as choice, i (i)}
+            <div class="prev-rank">
+              <span class="prev-rank__grip" aria-hidden="true">⠿</span>
+              <span class="prev-rank__n">{i + 1}</span>
+              {localizedValue(choice.text as never, locale) || choice.value}
+            </div>
+          {/each}
+          <button type="button" class="prev-add" onclick={(e) => (stop(e), store.addChoice(element.name))}>+ Add choice</button>
+        </div>
+      {:else if block?.id === 'expression'}
+        <div class="prev-input prev-input--expr">
+          <span aria-hidden="true">=</span>
+          {typeof element.expression === 'string' && element.expression ? element.expression : 'computed value'}
+        </div>
+      {:else if block?.id === 'multiple_text'}
+        <div class="prev-mt">
+          {#each items() as item, i (i)}
+            <div class="prev-mt__row">
+              <span class="prev-mt__label">{localizedValue(item.title as never, locale) || item.name}</span>
+              <span class="prev-input prev-mt__field"></span>
+            </div>
+          {/each}
+        </div>
+      {:else if block?.id === 'matrix'}
+        <div class="prev-matrix" style={`grid-template-columns: minmax(3rem,1fr) repeat(${Math.max(columns().length, 1)}, auto);`}>
+          <span></span>
+          {#each columns() as col (col.value)}
+            <span class="prev-matrix__col">{localizedValue(col.text as never, locale) || col.value}</span>
+          {/each}
+          {#each rows() as row (row.value)}
+            <span class="prev-matrix__row">{localizedValue(row.text as never, locale) || row.value}</span>
+            {#each columns() as col (col.value)}
+              <span class="prev-mark prev-mark--radio prev-matrix__cell"></span>
+            {/each}
+          {/each}
         </div>
       {:else if block?.id === 'boolean'}
         <div class="prev-bool">
@@ -282,5 +335,70 @@
   }
   .prev-box--muted {
     opacity: 0.45;
+  }
+  .prev-tag {
+    border: 1px solid color-mix(in srgb, #f59e0b 45%, transparent);
+    background: color-mix(in srgb, #f59e0b 12%, transparent);
+    border-radius: 0.35rem;
+    padding: 0.05rem 0.4rem;
+    font-size: 0.78rem;
+  }
+  .prev-rank {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+    border-radius: 0.4rem;
+    padding: 0.3rem 0.5rem;
+  }
+  .prev-rank__grip {
+    opacity: 0.4;
+  }
+  .prev-rank__n {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    opacity: 0.6;
+  }
+  .prev-input--expr {
+    display: flex;
+    gap: 0.4rem;
+    font-family: ui-monospace, monospace;
+  }
+  .prev-mt {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .prev-mt__row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .prev-mt__label {
+    flex: 0 0 6rem;
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
+  .prev-mt__field {
+    flex: 1;
+  }
+  .prev-matrix {
+    display: grid;
+    gap: 0.3rem 0.6rem;
+    align-items: center;
+    font-size: 0.82rem;
+  }
+  .prev-matrix__col {
+    text-align: center;
+    opacity: 0.7;
+    font-size: 0.76rem;
+  }
+  .prev-matrix__row {
+    opacity: 0.8;
+  }
+  .prev-matrix__cell {
+    justify-self: center;
+    margin: 0;
   }
 </style>

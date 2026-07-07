@@ -98,6 +98,8 @@
         <option value="hide">Hide on this page</option>
       </select>
     </div>
+    <LocalizedInput {store} target={page} propKey="navigationTitle" label="Menu title (table of contents)" onset={setLoc('navigationTitle')} />
+    <LocalizedInput {store} target={page} propKey="navigationDescription" label="Menu description" onset={setLoc('navigationDescription')} />
 
     <!-- ADVANCED -->
     <button
