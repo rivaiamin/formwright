@@ -45,6 +45,104 @@ export interface LogicDependency {
   dependsOn: string[];
 }
 
+/**
+ * Every SurveyJS property whose value is a localized string. The translations
+ * view walks the schema for these keys rather than hard-coding a list of places
+ * they can appear — so choices, matrix rows, validator messages and any future
+ * localized property are picked up for free.
+ */
+export const LOCALIZED_KEYS = new Set([
+  'title',
+  'description',
+  'html',
+  'text',
+  'altText',
+  'placeholder',
+  'requiredErrorText',
+  'labelTrue',
+  'labelFalse',
+  'completedHtml',
+  'completedBeforeHtml',
+  'loadingHtml',
+  'pagePrevText',
+  'pageNextText',
+  'completeText',
+  'startSurveyText',
+  'navigationTitle',
+  'navigationDescription',
+]);
+
+/** Human labels for the localized keys, for the translations grid. */
+const LOCALIZED_KEY_LABELS: Record<string, string> = {
+  title: 'Title',
+  description: 'Description',
+  html: 'Content',
+  text: 'Text',
+  altText: 'Alt text',
+  placeholder: 'Placeholder',
+  requiredErrorText: 'Required message',
+  labelTrue: '“Yes” label',
+  labelFalse: '“No” label',
+  completedHtml: 'Thank-you page',
+  completedBeforeHtml: 'Already-submitted message',
+  loadingHtml: 'Loading message',
+  pagePrevText: 'Previous button',
+  pageNextText: 'Next button',
+  completeText: 'Submit button',
+  startSurveyText: 'Start button',
+  navigationTitle: 'Menu title',
+  navigationDescription: 'Menu description',
+};
+
+/** One translatable string found in the schema. */
+export interface TranslationEntry {
+  /** Path from the schema root to the property, e.g. ['pages',0,'title']. */
+  path: (string | number)[];
+  /** Where it lives — 'Form', a page name, a field name, a choice value… */
+  context: string;
+  /** The property's human label. */
+  label: string;
+}
+
+/** True when a value is a localized string (plain or `{default,…}`). */
+function isLocalizedValue(value: unknown): boolean {
+  if (typeof value === 'string') {
+    return true;
+  }
+  return !!value && typeof value === 'object' && !Array.isArray(value) && 'default' in (value as object);
+}
+
+/**
+ * Recursively collect every localized string, tracking a readable context from
+ * the nearest identifying field (`name` for pages/fields/items, `value` for
+ * choices and matrix rows/columns).
+ */
+function collectTranslations(node: unknown, path: (string | number)[], context: string, out: TranslationEntry[]): void {
+  if (Array.isArray(node)) {
+    node.forEach((item, i) => collectTranslations(item, [...path, i], context, out));
+    return;
+  }
+  if (!node || typeof node !== 'object') {
+    return;
+  }
+
+  const obj = node as Record<string, unknown>;
+  let ctx = context;
+  if (typeof obj.name === 'string' && obj.name !== '') {
+    ctx = obj.name;
+  } else if (typeof obj.value === 'string' && obj.value !== '') {
+    ctx = `${context} › ${obj.value}`;
+  }
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (LOCALIZED_KEYS.has(key) && isLocalizedValue(value)) {
+      out.push({ path: [...path, key], context: ctx, label: LOCALIZED_KEY_LABELS[key] ?? key });
+    } else if (value && typeof value === 'object') {
+      collectTranslations(value, [...path, key], ctx, out);
+    }
+  }
+}
+
 /** A page in the survey. */
 export interface SurveyPage {
   name: string;
@@ -61,8 +159,13 @@ export interface SurveySchema {
   [key: string]: unknown;
 }
 
+/**
+ * Deep copy. Always snapshot first: `structuredClone` throws DataCloneError on a
+ * Svelte `$state` proxy, and callers routinely hand us live reactive objects.
+ * `$state.snapshot` is a no-op on plain values, so this is safe either way.
+ */
 function clone<T>(value: T): T {
-  return structuredClone(value);
+  return structuredClone($state.snapshot(value) as T);
 }
 
 /** Turn a display label into a stable snake_case value. */
@@ -288,6 +391,50 @@ export class BuilderStore {
     return rows;
   }
 
+  // -- translations -----------------------------------------------------------
+
+  /** Every translatable string in the schema, in document order. */
+  translationEntries(): TranslationEntry[] {
+    const out: TranslationEntry[] = [];
+    collectTranslations(this.schema, [], 'Form', out);
+    return out;
+  }
+
+  /** The object that owns the property at `path` (i.e. everything but the leaf). */
+  #resolveParent(path: (string | number)[]): Record<string, unknown> | null {
+    let node: unknown = this.schema;
+    for (let i = 0; i < path.length - 1; i++) {
+      node = (node as Record<string, unknown> | undefined)?.[path[i]];
+      if (node == null || typeof node !== 'object') {
+        return null;
+      }
+    }
+    return node as Record<string, unknown>;
+  }
+
+  /** Read one locale of a localized string by path — NO fallback to default. */
+  localizedAtPath(path: (string | number)[], locale: string): string {
+    const parent = this.#resolveParent(path);
+    const value = parent?.[path[path.length - 1]];
+    if (value == null) {
+      return '';
+    }
+    if (typeof value === 'string') {
+      return locale === 'default' ? value : '';
+    }
+    return ((value as Record<string, string>)[locale] as string) ?? '';
+  }
+
+  /** Write one locale of a localized string by path. */
+  setLocalizedAtPath(path: (string | number)[], value: string, locale: string): void {
+    const parent = this.#resolveParent(path);
+    if (!parent) {
+      return;
+    }
+    assignLocalized(parent, String(path[path.length - 1]), value, locale);
+    this.#markDirty(`tr:${path.join('.')}:${locale}`);
+  }
+
   // -- selection --------------------------------------------------------------
 
   select(name: string | null): void {
@@ -414,6 +561,25 @@ export class BuilderStore {
     this.#structuralChange();
     this.select(el.name);
     return el;
+  }
+
+  /** Insert an existing element (e.g. from the saved-block library), renaming it
+   *  if needed so names stay unique. Returns the inserted copy. */
+  insertElement(element: SurveyElement, pageIndex: number, atIndex?: number): SurveyElement {
+    const copy = clone(element);
+    const taken = this.allNames();
+    const base = typeof copy.name === 'string' && copy.name !== '' ? copy.name : 'field';
+    let candidate = base;
+    let i = 1;
+    while (taken.has(candidate)) {
+      candidate = `${base}_${++i}`;
+    }
+    copy.name = candidate;
+    const els = this.schema.pages[pageIndex].elements;
+    els.splice(atIndex ?? els.length, 0, copy);
+    this.#structuralChange();
+    this.select(copy.name);
+    return copy;
   }
 
   /** Replace a page's element list wholesale (used by drag reorder / cross-page). */

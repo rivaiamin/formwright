@@ -18,6 +18,21 @@ export interface SaveResult {
   errors?: string[];
 }
 
+/** One entry of the saved version history, from the Livewire `revisions` call. */
+export interface RevisionInfo {
+  id: number;
+  savedAt: string;
+  fields: number;
+  current: boolean;
+}
+
+/** Result of a restore, mirroring the Livewire `restoreRevision` return shape. */
+export interface RestoreResult {
+  ok: boolean;
+  schema?: Record<string, unknown>;
+  error?: string;
+}
+
 /** Result of an AI draft request, mirroring the Livewire `aiDraft` return shape. */
 export interface AiDraftResult {
   ok: boolean;
@@ -39,6 +54,10 @@ export interface MountOptions {
   reload?: () => Promise<Record<string, unknown>>;
   /** Draft a survey from a prompt (bridges to the host's AiAssistant). */
   onAiDraft?: (prompt: string) => Promise<AiDraftResult> | AiDraftResult;
+  /** List the saved revisions of this form, newest first. */
+  onRevisions?: () => Promise<RevisionInfo[]> | RevisionInfo[];
+  /** Fetch one revision's JSON (does not write anything). */
+  onRestore?: (id: number) => Promise<RestoreResult> | RestoreResult;
 }
 
 type SvelteApp = ReturnType<typeof svelteMount>;
@@ -63,6 +82,8 @@ export function mount(el: Element, opts: MountOptions): SvelteApp {
       onDirty: opts.onDirty,
       reload: opts.reload,
       onAiDraft: opts.onAiDraft,
+      onRevisions: opts.onRevisions,
+      onRestore: opts.onRestore,
     },
   });
 

@@ -19,9 +19,11 @@
 
   interface Props {
     store: BuilderStore;
+    /** Save a configured field into the reusable-block library. */
+    onsaveblock?: (element: SurveyElement) => void;
   }
 
-  let { store }: Props = $props();
+  let { store, onsaveblock }: Props = $props();
 
   /** Local drag projection of the schema. Rebuilt only when `store.rev` bumps
    *  (wholesale / structural change), never on a dnd commit — this is what keeps
@@ -154,6 +156,7 @@
                 onselect={() => store.select(el.name)}
                 onremove={() => store.removeElement(el.name)}
                 onduplicate={() => store.duplicateElement(el.name)}
+                onsave={onsaveblock ? () => onsaveblock(el) : undefined}
               />
             {:else if isTemplate(item)}
               <div class="ghost">{item.label}</div>

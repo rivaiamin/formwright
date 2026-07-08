@@ -8,11 +8,16 @@
   import AiPanel from './lib/AiPanel.svelte';
   import Canvas from './lib/Canvas.svelte';
   import JsonEditor from './lib/JsonEditor.svelte';
+  import HistoryPanel from './lib/HistoryPanel.svelte';
   import Palette from './lib/Palette.svelte';
   import Preview from './lib/Preview.svelte';
   import PropertyPanel from './lib/PropertyPanel.svelte';
-  import type { AiDraftResult, SaveResult } from './main';
+  import TemplatesPanel from './lib/TemplatesPanel.svelte';
+  import TranslationsGrid from './lib/TranslationsGrid.svelte';
+  import { BlockLibrary, type SavedBlock } from './library.svelte';
+  import type { AiDraftResult, RestoreResult, RevisionInfo, SaveResult } from './main';
   import { BuilderStore, isRtlLocale, type SurveySchema } from './store.svelte';
+  import type { SurveyElement } from '../schema/type-registry';
 
   interface Props {
     schema: Record<string, unknown>;
@@ -22,9 +27,11 @@
     onDirty?: (dirty: boolean) => void;
     reload?: () => Promise<Record<string, unknown>>;
     onAiDraft?: (prompt: string) => Promise<AiDraftResult> | AiDraftResult;
+    onRevisions?: () => Promise<RevisionInfo[]> | RevisionInfo[];
+    onRestore?: (id: number) => Promise<RestoreResult> | RestoreResult;
   }
 
-  let { schema, locales, defaultLocale, onSave, onDirty, reload, onAiDraft }: Props = $props();
+  let { schema, locales, defaultLocale, onSave, onDirty, reload, onAiDraft, onRevisions, onRestore }: Props = $props();
 
   const store = new BuilderStore(schema as SurveySchema, {
     locales,
@@ -32,8 +39,12 @@
     onDirty,
   });
 
-  let tab = $state<'visual' | 'preview' | 'json'>('visual');
+  const library = new BlockLibrary();
+
+  let tab = $state<'visual' | 'preview' | 'translations' | 'json'>('visual');
   let showAi = $state(false);
+  let showTemplates = $state(false);
+  let showHistory = $state(false);
   let saving = $state(false);
   let newLocale = $state('');
   let status = $state<{ kind: 'idle' | 'ok' | 'error'; text: string }>({ kind: 'idle', text: '' });
@@ -50,6 +61,22 @@
 
   function addBlock(blockId: string): void {
     store.addBlock(blockId, targetPage());
+    status = { kind: 'idle', text: '' };
+  }
+
+  /** Save a configured field into the library, labelled by its title or name. */
+  function saveBlock(element: SurveyElement): void {
+    const title = element.title as { default?: string } | string | undefined;
+    const label = typeof title === 'string' ? title : (title?.default ?? element.name);
+    // `element` is a $state proxy — structuredClone would throw DataCloneError.
+    library.add($state.snapshot(element) as SurveyElement, label);
+    // Deliberately avoids the word "Saved" — it would collide with the Save button
+    // and the save-status banner for anything matching on visible text.
+    status = { kind: 'ok', text: `Added “${label}” to the library` };
+  }
+
+  function insertSaved(block: SavedBlock): void {
+    store.insertElement(block.element, targetPage());
     status = { kind: 'idle', text: '' };
   }
 
@@ -119,6 +146,15 @@
       <button type="button" class="sv-tab" class:sv-tab--on={tab === 'preview'} onclick={() => (tab = 'preview')}>
         Preview
       </button>
+      <button
+        type="button"
+        class="sv-tab"
+        class:sv-tab--on={tab === 'translations'}
+        data-testid="tab-translations"
+        onclick={() => (tab = 'translations')}
+      >
+        Translations
+      </button>
       <button type="button" class="sv-tab" class:sv-tab--on={tab === 'json'} onclick={() => (tab = 'json')}>
         JSON
       </button>
@@ -140,6 +176,34 @@
         bind:value={newLocale}
         onkeydown={(e) => e.key === 'Enter' && addLocale()}
       />
+      {#if onRevisions && onRestore}
+        <button
+          type="button"
+          class="sv-btn"
+          class:sv-btn--on={showHistory}
+          data-testid="history-toggle"
+          title="Saved version history"
+          onclick={() => {
+            tab = 'visual';
+            showHistory = !showHistory;
+          }}
+        >
+          History
+        </button>
+      {/if}
+      <button
+        type="button"
+        class="sv-btn"
+        class:sv-btn--on={showTemplates}
+        data-testid="templates-toggle"
+        title="Start from a template"
+        onclick={() => {
+          tab = 'visual';
+          showTemplates = !showTemplates;
+        }}
+      >
+        Templates
+      </button>
       <button
         type="button"
         class="sv-btn"
@@ -191,14 +255,24 @@
     <AiPanel {store} {onAiDraft} />
   {/if}
 
+  {#if showTemplates && tab === 'visual'}
+    <TemplatesPanel {store} onapplied={() => (showTemplates = false)} />
+  {/if}
+
+  {#if showHistory && tab === 'visual' && onRevisions && onRestore}
+    <HistoryPanel {store} {onRevisions} {onRestore} onrestored={() => (showHistory = false)} />
+  {/if}
+
   {#if tab === 'visual'}
     <div class="sv-grid">
-      <Palette onadd={addBlock} />
-      <div class="sv-canvas"><Canvas {store} /></div>
+      <Palette onadd={addBlock} {library} oninsertsaved={insertSaved} />
+      <div class="sv-canvas"><Canvas {store} onsaveblock={saveBlock} /></div>
       <PropertyPanel {store} />
     </div>
   {:else if tab === 'preview'}
     <Preview {store} />
+  {:else if tab === 'translations'}
+    <TranslationsGrid {store} />
   {:else}
     <JsonEditor {store} />
   {/if}
@@ -301,6 +375,10 @@
     padding: 0.4rem 0.6rem;
     font-size: 1rem;
     line-height: 1;
+  }
+  .sv-btn--on {
+    background: color-mix(in srgb, #f59e0b 18%, transparent);
+    border-color: #f59e0b;
   }
   .sv-btn--primary {
     background: #f59e0b;

@@ -9,9 +9,10 @@
     onselect?: () => void;
     onremove?: () => void;
     onduplicate?: () => void;
+    onsave?: () => void;
   }
 
-  let { element, store, selected = false, onselect, onremove, onduplicate }: Props = $props();
+  let { element, store, selected = false, onselect, onremove, onduplicate, onsave }: Props = $props();
 
   let locale = $derived(store.editingLocale);
   let block = $derived(resolveBlock(element));
@@ -57,6 +58,9 @@
       </span>
       {#if !locked}
         <div class="card__actions">
+          {#if onsave}
+            <button type="button" data-action="save-block" title="Add to library" aria-label="Add field to library" onclick={(e) => (stop(e), onsave?.())}>☆</button>
+          {/if}
           {#if onduplicate}
             <button type="button" data-action="duplicate" title="Duplicate" aria-label="Duplicate field" onclick={(e) => (stop(e), onduplicate?.())}>⧉</button>
           {/if}

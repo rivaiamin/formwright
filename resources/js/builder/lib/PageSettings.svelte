@@ -121,6 +121,65 @@
         />
       </div>
       <p class="panel__warn">Warning: renaming a page can break logic that references it.</p>
+
+      <label class="field__check">
+        <input
+          type="checkbox"
+          data-testid="page-readonly"
+          checked={page.readOnly === true}
+          onchange={(e) => store.setPageProp(page.name, 'readOnly', e.currentTarget.checked ? true : '')}
+        />
+        Read-only page
+      </label>
+
+      <div class="field">
+        <label class="field__label" for="page-enableif">Enable this page only if…</label>
+        <textarea
+          id="page-enableif"
+          rows="2"
+          placeholder="{'{plan}'} = 'pro'"
+          value={typeof page.enableIf === 'string' ? page.enableIf : ''}
+          oninput={(e) => store.setPageProp(page.name, 'enableIf', e.currentTarget.value)}
+        ></textarea>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="page-titleloc">Question title position</label>
+        <select
+          id="page-titleloc"
+          data-testid="page-title-location"
+          value={typeof page.questionTitleLocation === 'string' ? page.questionTitleLocation : 'default'}
+          onchange={(e) => store.setPageProp(page.name, 'questionTitleLocation', e.currentTarget.value === 'default' ? '' : e.currentTarget.value)}
+        >
+          <option value="default">Inherit from form</option>
+          <option value="top">Top</option>
+          <option value="bottom">Bottom</option>
+          <option value="left">Left</option>
+          <option value="hidden">Hidden</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="page-maxwidth">Maximum width</label>
+        <input
+          id="page-maxwidth"
+          type="text"
+          placeholder="e.g. 720px"
+          value={typeof page.maxWidth === 'string' ? page.maxWidth : ''}
+          oninput={(e) => store.setPageProp(page.name, 'maxWidth', e.currentTarget.value)}
+        />
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="page-timelimit">Time limit (seconds)</label>
+        <input
+          id="page-timelimit"
+          type="number"
+          min="0"
+          value={typeof page.maxTimeToFinish === 'number' ? String(page.maxTimeToFinish) : ''}
+          oninput={(e) => store.setPageProp(page.name, 'maxTimeToFinish', e.currentTarget.value === '' ? '' : Number(e.currentTarget.value))}
+        />
+      </div>
     {/if}
   {/if}
 </aside>
@@ -212,6 +271,7 @@
     font-size: 0.85rem;
   }
   .field :global(input[type='text']),
+  .field :global(input[type='number']),
   .field select,
   .field textarea {
     width: 100%;

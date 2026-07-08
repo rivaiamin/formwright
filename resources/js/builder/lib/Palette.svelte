@@ -2,15 +2,19 @@
   import { dragHandle, dragHandleZone, SHADOW_PLACEHOLDER_ITEM_ID } from 'svelte-dnd-action';
 
   import { DND_FIELD_TYPE, FLIP_MS, type PaletteItem } from '../dnd';
+  import type { BlockLibrary, SavedBlock } from '../library.svelte';
   import { PALETTE_GROUPS, type PaletteBlock } from '../store.svelte';
   import Icon from './Icon.svelte';
 
   interface Props {
     /** Click-to-add (grip = drag, label = add). Also a deterministic test hook. */
     onadd?: (blockId: string) => void;
+    /** The reusable-block library, if enabled. */
+    library?: BlockLibrary;
+    oninsertsaved?: (block: SavedBlock) => void;
   }
 
-  let { onadd }: Props = $props();
+  let { onadd, library, oninsertsaved }: Props = $props();
 
   function itemsFor(blocks: PaletteBlock[]): PaletteItem[] {
     return blocks.map((b) => ({
@@ -72,6 +76,34 @@
       {/each}
     </div>
   {/each}
+
+  {#if library && library.blocks.length > 0}
+    <p class="palette__group">Saved blocks</p>
+    <div class="palette__list" data-testid="saved-blocks">
+      {#each library.blocks as block (block.id)}
+        <div class="palette__row">
+          <button
+            type="button"
+            class="palette__chip"
+            data-saved-block={block.id}
+            title={`Insert ${block.label}`}
+            onclick={() => oninsertsaved?.(block)}
+          >
+            <span class="palette__icon" aria-hidden="true">★</span>
+            {block.label}
+          </button>
+          <button
+            type="button"
+            class="palette__del"
+            aria-label={`Remove ${block.label} from library`}
+            onclick={() => library.remove(block.id)}
+          >
+            ×
+          </button>
+        </div>
+      {/each}
+    </div>
+  {/if}
 </aside>
 
 <style>
@@ -138,5 +170,18 @@
     display: flex;
     color: #b45309;
     opacity: 0.9;
+  }
+  .palette__del {
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.4;
+    font-size: 0.95rem;
+    padding: 0 0.25rem;
+  }
+  .palette__del:hover {
+    opacity: 1;
+    color: #dc2626;
   }
 </style>

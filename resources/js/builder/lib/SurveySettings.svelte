@@ -18,6 +18,7 @@
   let showBehavior = $state(false);
   let showAutomation = $state(false);
   let showTheme = $state(false);
+  let showAdvanced = $state(false);
 
   /** A select whose default value is stored as "absent" to keep the JSON clean. */
   function pick(key: string, value: string, fallback: string): void {
@@ -370,6 +371,68 @@
       Focus the first field on each page
     </label>
   {/if}
+
+  <!-- ADVANCED -->
+  <button type="button" class="panel__disc" data-testid="survey-advanced-toggle" onclick={() => (showAdvanced = !showAdvanced)}>
+    {showAdvanced ? '▾' : '▸'} Advanced
+  </button>
+  {#if showAdvanced}
+    <div class="field">
+      <label class="field__label" for="survey-titlepattern">Title pattern</label>
+      <select
+        id="survey-titlepattern"
+        data-testid="survey-titlepattern"
+        value={val('questionTitlePattern', 'numTitleRequire')}
+        onchange={(e) => pick('questionTitlePattern', e.currentTarget.value, 'numTitleRequire')}
+      >
+        <option value="numTitleRequire">1. Title *</option>
+        <option value="numRequireTitle">1. * Title</option>
+        <option value="requireNumTitle">* 1. Title</option>
+        <option value="numTitle">1. Title (no marker)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field__label" for="survey-requiredtext">Required marker</label>
+      <input id="survey-requiredtext" type="text" placeholder="*" value={val('requiredText', '')} oninput={(e) => store.setSurveyProp('requiredText', e.currentTarget.value)} />
+    </div>
+    <div class="field">
+      <label class="field__label" for="survey-textupdate">Update answers</label>
+      <select id="survey-textupdate" value={val('textUpdateMode', 'onBlur')} onchange={(e) => pick('textUpdateMode', e.currentTarget.value, 'onBlur')}>
+        <option value="onBlur">When leaving a field</option>
+        <option value="onTyping">While typing</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field__label" for="survey-maxtext">Max text length</label>
+      <input id="survey-maxtext" type="number" min="0" value={val('maxTextLength', '')} oninput={(e) => store.setSurveyProp('maxTextLength', e.currentTarget.value === '' ? '' : Number(e.currentTarget.value))} />
+    </div>
+    <div class="field">
+      <label class="field__label" for="survey-widthmode">Width mode</label>
+      <select id="survey-widthmode" value={val('widthMode', 'auto')} onchange={(e) => pick('widthMode', e.currentTarget.value, 'auto')}>
+        <option value="auto">Auto</option>
+        <option value="static">Fixed</option>
+        <option value="responsive">Full width</option>
+      </select>
+    </div>
+    {#if val('widthMode', 'auto') === 'static'}
+      <div class="field">
+        <label class="field__label" for="survey-width">Width</label>
+        <input id="survey-width" type="text" placeholder="e.g. 900px" value={val('width', '')} oninput={(e) => store.setSurveyProp('width', e.currentTarget.value)} />
+      </div>
+    {/if}
+    <div class="field">
+      <label class="field__label" for="survey-qorder">Question order</label>
+      <select id="survey-qorder" data-testid="survey-questionsorder" value={val('questionsOrder', 'initial')} onchange={(e) => pick('questionsOrder', e.currentTarget.value, 'initial')}>
+        <option value="initial">As designed</option>
+        <option value="random">Randomize across the form</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field__label" for="survey-cookie">Fill-once cookie name</label>
+      <input id="survey-cookie" type="text" data-testid="survey-cookie" placeholder="e.g. my_form_done" value={val('cookieName', '')} oninput={(e) => store.setSurveyProp('cookieName', e.currentTarget.value)} />
+      <p class="panel__help">When set, a visitor can only submit this form once per browser.</p>
+    </div>
+  {/if}
 </aside>
 
 <style>
@@ -455,6 +518,7 @@
     gap: 0.5rem;
   }
   .field :global(input[type='text']),
+  .field :global(input[type='number']),
   .field select {
     width: 100%;
     padding: 0.4rem 0.5rem;
