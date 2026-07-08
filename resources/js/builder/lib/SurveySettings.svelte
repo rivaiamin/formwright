@@ -247,6 +247,10 @@
     <input type="checkbox" data-testid="survey-autonext" checked={boolVal('goNextPageAutomatic', false)} onchange={(e) => setBool('goNextPageAutomatic', e.currentTarget.checked, false)} />
     Advance to next page automatically
   </label>
+  <label class="field__check">
+    <input type="checkbox" data-testid="survey-autocomplete" checked={boolVal('allowCompleteSurveyAutomatic', true)} onchange={(e) => setBool('allowCompleteSurveyAutomatic', e.currentTarget.checked, true)} />
+    Submit automatically when the last page is answered
+  </label>
   <LocalizedInput {store} target={schema} propKey="pagePrevText" label="Previous button" onset={setLoc('pagePrevText')} />
   <LocalizedInput {store} target={schema} propKey="pageNextText" label="Next button" onset={setLoc('pageNextText')} />
   <LocalizedInput {store} target={schema} propKey="completeText" label="Submit button" onset={setLoc('completeText')} />
@@ -264,6 +268,23 @@
     label="Thank-you page (HTML)"
     multiline
     onset={setLoc('completedHtml')}
+  />
+  <LocalizedInput
+    {store}
+    target={schema}
+    propKey="completedBeforeHtml"
+    label="Already-submitted message (HTML)"
+    multiline
+    onset={setLoc('completedBeforeHtml')}
+  />
+  <p class="panel__help">Shown when a respondent who already completed this form opens it again.</p>
+  <LocalizedInput
+    {store}
+    target={schema}
+    propKey="loadingHtml"
+    label="Loading message (HTML)"
+    multiline
+    onset={setLoc('loadingHtml')}
   />
   <div class="field">
     <label class="field__label" for="survey-redirect">Redirect URL after submit</label>

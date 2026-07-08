@@ -1397,7 +1397,7 @@ function resolveGroup(label: string, ids: string[]): PaletteGroup {
  * match-precedence order).
  */
 export const PALETTE_GROUPS: PaletteGroup[] = [
-  resolveGroup('Essentials', ['short_text', 'long_text', 'number', 'date']),
+  resolveGroup('Essentials', ['short_text', 'long_text', 'number', 'date', 'color']),
   resolveGroup('Choices', ['single_choice', 'multiple_choice', 'dropdown', 'tagbox', 'boolean', 'button_group', 'rating', 'ranking', 'image_picker']),
   resolveGroup('Grids', ['matrix', 'matrix_dropdown', 'matrix_dynamic', 'multiple_text']),
   resolveGroup('Layout', ['panel', 'panel_dynamic']),

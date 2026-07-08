@@ -33,6 +33,7 @@
     'panel-repeat': 'M6 3h12v7H6zM6 14h12v7H6zM3 12h18M8 12l-2-2M16 12l2 2',
     'matrix-cells': 'M4 4h16v16H4zM4 10h16M4 15h16M12 4v16M14 12l1.5 1.5L18 11',
     'matrix-rows': 'M4 5h16v5H4zM4 12h16v5H4zM9 20h6M12 18v4',
+    droplet: 'M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z',
   };
 
   let d = $derived(PATHS[name] ?? 'M5 5h14v14H5z');

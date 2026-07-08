@@ -43,6 +43,12 @@ class DesignerPage extends Page
 
     public function mount(): void
     {
+        $requested = request()->integer('record');
+
+        if ($requested > 0) {
+            $this->recordId = $requested;
+        }
+
         $record = $this->resolveRecord();
 
         $this->recordId = $record->getKey();

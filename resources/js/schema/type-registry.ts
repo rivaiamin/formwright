@@ -148,7 +148,22 @@ export const registry: BlockDefinition[] = [
     matches: (el) => el.type === 'text' && el.inputType === 'date',
   },
 
-  // 3. Short answer (plain text) — excludes any inputType so it won't swallow #/date
+  // 3. Color (text + inputType:color) — native swatch; MUST precede plain text.
+  // survey-core has no `color` question type, but `text` with inputType:color
+  // renders a native <input type="color">, so this round-trips and renders.
+  {
+    id: 'color',
+    label: 'Color',
+    icon: 'droplet',
+    surveyType: 'text',
+    factory: (name) => ({ type: 'text', name, inputType: 'color' }),
+    properties: [
+      ...commonProps(),
+    ],
+    matches: (el) => el.type === 'text' && el.inputType === 'color',
+  },
+
+  // 4. Short answer (plain text) — excludes any inputType so it won't swallow #/date
   {
     id: 'short_text',
     label: 'Short answer',

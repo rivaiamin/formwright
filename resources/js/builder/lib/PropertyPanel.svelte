@@ -50,6 +50,12 @@
     { value: 'hidden', label: 'Hidden' },
   ];
 
+  const DESCRIPTION_LOCATIONS = [
+    { value: 'default', label: 'Default' },
+    { value: 'underInput', label: 'Under input' },
+    { value: 'underTitle', label: 'Under title' },
+  ];
+
   /** Input types (as opposed to display-only html/image) carry an isRequired prop. */
   let isInput = $derived(has('isRequired'));
   /** SurveyJS types that render a placeholder. */
@@ -339,6 +345,19 @@
             {/each}
           </select>
         </div>
+        <div class="field">
+          <label class="field__label" for="prop-descriptionLocation">Help-text position</label>
+          <select
+            id="prop-descriptionLocation"
+            data-testid="description-location"
+            value={typeof el.descriptionLocation === 'string' ? el.descriptionLocation : 'default'}
+            onchange={(e) => store.setProp(el.name, 'descriptionLocation', e.currentTarget.value === 'default' ? '' : e.currentTarget.value)}
+          >
+            {#each DESCRIPTION_LOCATIONS as opt (opt.value)}
+              <option value={opt.value}>{opt.label}</option>
+            {/each}
+          </select>
+        </div>
         <label class="field__check">
           <input
             type="checkbox"
@@ -358,6 +377,28 @@
             placeholder="e.g. 50% or 200px"
             value={typeof el.width === 'string' ? el.width : ''}
             oninput={(e) => store.setProp(el.name, 'width', e.currentTarget.value)}
+          />
+        </div>
+        <div class="field">
+          <label class="field__label" for="prop-minWidth">Min width</label>
+          <input
+            id="prop-minWidth"
+            type="text"
+            data-testid="field-min-width"
+            placeholder="e.g. 300px"
+            value={typeof el.minWidth === 'string' ? el.minWidth : ''}
+            oninput={(e) => store.setProp(el.name, 'minWidth', e.currentTarget.value)}
+          />
+        </div>
+        <div class="field">
+          <label class="field__label" for="prop-maxWidth">Max width</label>
+          <input
+            id="prop-maxWidth"
+            type="text"
+            data-testid="field-max-width"
+            placeholder="e.g. 100%"
+            value={typeof el.maxWidth === 'string' ? el.maxWidth : ''}
+            oninput={(e) => store.setProp(el.name, 'maxWidth', e.currentTarget.value)}
           />
         </div>
         <div class="field">
