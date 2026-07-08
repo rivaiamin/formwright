@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use Database\Factories\FormSubmissionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class FormSubmission extends Model
 {
-    /** @use HasFactory<\Database\Factories\FormSubmissionFactory> */
+    /** @use HasFactory<FormSubmissionFactory> */
     use BelongsToTenant, HasFactory;
 
     protected $fillable = [
@@ -49,6 +50,9 @@ class FormSubmission extends Model
      */
     public function schema(): BelongsTo
     {
-        return $this->belongsTo(config('formbuilder.models.form_schema', FormSchema::class), 'form_schema_id');
+        /** @var class-string<FormSchema> $model */
+        $model = config('formbuilder.models.form_schema', FormSchema::class);
+
+        return $this->belongsTo($model, 'form_schema_id');
     }
 }

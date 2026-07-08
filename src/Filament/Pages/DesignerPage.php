@@ -3,6 +3,8 @@
 namespace App\Filament\Pages;
 
 use App\Contracts\AiAssistant;
+use App\Models\FormSchema;
+use App\Models\FormSchemaRevision;
 use App\Support\AiAssistantNotConfiguredException;
 use App\Support\SchemaValidationException;
 use App\Support\SchemaValidator;
@@ -10,7 +12,6 @@ use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Database\Eloquent\Model;
 use Livewire\Attributes\Renderless;
 use Throwable;
 
@@ -179,9 +180,9 @@ class DesignerPage extends Page
      *
      * @param  array<string, mixed>  $json
      */
-    protected function recordRevision(Model $record, array $json): void
+    protected function recordRevision(FormSchema $record, array $json): void
     {
-        /** @var class-string<Model> $model */
+        /** @var class-string<FormSchemaRevision> $model */
         $model = config('formbuilder.models.form_schema_revision');
 
         $newest = $model::query()
@@ -208,7 +209,7 @@ class DesignerPage extends Page
     #[Renderless]
     public function revisions(): array
     {
-        /** @var class-string<Model> $model */
+        /** @var class-string<FormSchemaRevision> $model */
         $model = config('formbuilder.models.form_schema_revision');
 
         $current = $this->resolveRecord();
@@ -236,7 +237,7 @@ class DesignerPage extends Page
     #[Renderless]
     public function restoreRevision(int $id): array
     {
-        /** @var class-string<Model> $model */
+        /** @var class-string<FormSchemaRevision> $model */
         $model = config('formbuilder.models.form_schema_revision');
 
         $revision = $model::query()
@@ -250,9 +251,9 @@ class DesignerPage extends Page
         return ['ok' => true, 'schema' => $revision->json];
     }
 
-    protected function resolveRecord(): Model
+    protected function resolveRecord(): FormSchema
     {
-        /** @var class-string<Model> $model */
+        /** @var class-string<FormSchema> $model */
         $model = config('formbuilder.models.form_schema');
 
         if ($this->recordId !== null) {
