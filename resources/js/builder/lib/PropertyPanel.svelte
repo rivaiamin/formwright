@@ -1,7 +1,9 @@
 <script lang="ts">
   import { resolveBlock, type PropertyDescriptor, type SurveyElement } from '../../schema/type-registry';
   import { localizedValue, type BuilderStore } from '../store.svelte';
+  import ImageChoicesEditor from './ImageChoicesEditor.svelte';
   import ItemListEditor from './ItemListEditor.svelte';
+  import MatrixColumnsEditor from './MatrixColumnsEditor.svelte';
   import LocalizedInput from './LocalizedInput.svelte';
   import LogicEditor from './LogicEditor.svelte';
   import LogicMap from './LogicMap.svelte';
@@ -253,12 +255,28 @@
       {/if}
     {/if}
 
+    <!-- IMAGE PICKER choices (each option carries an image URL) -->
+    {#if block?.id === 'image_picker'}
+      <p class="panel__section">Images</p>
+      <ImageChoicesEditor {store} element={el} />
+    {/if}
+
     <!-- MATRIX rows/columns -->
     {#if block?.id === 'matrix'}
       <p class="panel__section">Rows</p>
       <ItemListEditor {store} element={el} listKey="rows" primaryKey="value" labelKey="text" noun="Row" />
       <p class="panel__section">Columns</p>
       <ItemListEditor {store} element={el} listKey="columns" primaryKey="value" labelKey="text" noun="Column" />
+    {/if}
+
+    <!-- TYPED-CELL MATRICES: columns (+ rows for matrixdropdown) -->
+    {#if block?.id === 'matrix_dropdown' || block?.id === 'matrix_dynamic'}
+      <p class="panel__section">Columns</p>
+      <MatrixColumnsEditor {store} element={el} />
+      {#if block?.id === 'matrix_dropdown'}
+        <p class="panel__section">Rows</p>
+        <ItemListEditor {store} element={el} listKey="rows" primaryKey="value" labelKey="text" noun="Row" />
+      {/if}
     {/if}
 
     <!-- MULTIPLE TEXT items -->

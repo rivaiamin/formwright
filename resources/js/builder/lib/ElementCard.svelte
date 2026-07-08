@@ -32,6 +32,10 @@
   function items(): Array<{ name: string; title?: unknown }> {
     return (element.items as Array<{ name: string; title?: unknown }> | undefined) ?? [];
   }
+  /** Typed columns of a matrixdropdown / matrixdynamic (name + title + cellType). */
+  function cells(): Array<{ name: unknown; title?: unknown; cellType?: unknown }> {
+    return (element.columns as Array<{ name: unknown; title?: unknown; cellType?: unknown }> | undefined) ?? [];
+  }
 
   function stop(e: Event): void {
     e.stopPropagation();
@@ -117,6 +121,54 @@
             </div>
           {/each}
           <button type="button" class="prev-add" onclick={(e) => (stop(e), store.addChoice(element.name))}>+ Add choice</button>
+        </div>
+      {:else if block?.id === 'button_group'}
+        <div class="prev-bool">
+          {#each choices() as choice, i (i)}
+            <span class="prev-pill">{localizedValue(choice.text as never, locale) || choice.value}</span>
+          {/each}
+          <button type="button" class="prev-add" onclick={(e) => (stop(e), store.addChoice(element.name))}>+ Add</button>
+        </div>
+      {:else if block?.id === 'matrix_dropdown'}
+        <div class="prev-matrix" style={`grid-template-columns: minmax(3rem,1fr) repeat(${Math.max(cells().length, 1)}, minmax(4rem,auto));`}>
+          <span></span>
+          {#each cells() as col (col.name)}
+            <span class="prev-matrix__col">{localizedValue(col.title as never, locale) || String(col.name)}</span>
+          {/each}
+          {#each rows() as row (row.value)}
+            <span class="prev-matrix__row">{localizedValue(row.text as never, locale) || row.value}</span>
+            {#each cells() as col (col.name)}
+              <span class="prev-cell">{String(col.cellType ?? 'dropdown') === 'dropdown' ? '▾' : '—'}</span>
+            {/each}
+          {/each}
+        </div>
+      {:else if block?.id === 'matrix_dynamic'}
+        <div class="prev-matrix" style={`grid-template-columns: repeat(${Math.max(cells().length, 1)}, minmax(4rem,1fr));`}>
+          {#each cells() as col (col.name)}
+            <span class="prev-matrix__col">{localizedValue(col.title as never, locale) || String(col.name)}</span>
+          {/each}
+          {#each Array(typeof element.rowCount === 'number' ? element.rowCount : 2) as _, r (r)}
+            {#each cells() as col (col.name)}
+              <span class="prev-cell prev-cell--input"></span>
+            {/each}
+          {/each}
+        </div>
+        <button type="button" class="prev-add" onclick={(e) => stop(e)}>+ {localizedValue(element.addRowText as never, locale) || 'Add row'}</button>
+      {:else if block?.id === 'image_picker'}
+        <div class="prev-imgs">
+          {#each choices() as choice, i (i)}
+            {@const src = typeof (choice as { imageLink?: unknown }).imageLink === 'string' ? (choice as { imageLink: string }).imageLink : ''}
+            <div class="prev-img">
+              {#if src}
+                <img class="prev-img__thumb" {src} alt={choice.value} />
+              {:else}
+                <span class="prev-img__thumb prev-img__thumb--empty" aria-hidden="true">🖼</span>
+              {/if}
+              {#if element.showLabel !== false}
+                <span class="prev-img__label">{localizedValue(choice.text as never, locale) || choice.value}</span>
+              {/if}
+            </div>
+          {/each}
         </div>
       {:else if block?.id === 'expression'}
         <div class="prev-input prev-input--expr">
@@ -360,6 +412,42 @@
     font-weight: 600;
     opacity: 0.6;
   }
+  .prev-imgs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .prev-img {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    width: 4.2rem;
+  }
+  .prev-img__thumb {
+    width: 4.2rem;
+    height: 3.2rem;
+    object-fit: cover;
+    border-radius: 0.4rem;
+    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    background: color-mix(in srgb, currentColor 6%, transparent);
+  }
+  .prev-img__thumb--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    opacity: 0.4;
+  }
+  .prev-img__label {
+    font-size: 0.7rem;
+    opacity: 0.7;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
   .prev-input--expr {
     display: flex;
     gap: 0.4rem;
@@ -400,5 +488,17 @@
   .prev-matrix__cell {
     justify-self: center;
     margin: 0;
+  }
+  .prev-cell {
+    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    border-radius: 0.3rem;
+    padding: 0.2rem 0.35rem;
+    font-size: 0.72rem;
+    text-align: end;
+    opacity: 0.6;
+    background: color-mix(in srgb, currentColor 3%, transparent);
+  }
+  .prev-cell--input {
+    min-height: 1.4rem;
   }
 </style>

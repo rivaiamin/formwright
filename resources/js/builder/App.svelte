@@ -49,7 +49,14 @@
   }
 
   function addBlock(blockId: string): void {
-    store.addBlock(blockId, targetPage());
+    const selected = store.selected;
+    // Clicking a palette block while a panel is selected drops it INSIDE the
+    // panel — which is what the selection implies.
+    if (selected && store.isContainer(selected)) {
+      store.addBlockToContainer(blockId, selected.name);
+    } else {
+      store.addBlock(blockId, targetPage());
+    }
     status = { kind: 'idle', text: '' };
   }
 
