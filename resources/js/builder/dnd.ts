@@ -10,7 +10,8 @@
 
 import { SHADOW_PLACEHOLDER_ITEM_ID } from 'svelte-dnd-action';
 
-import { createElement, type SurveyElement } from '../schema/type-registry';
+import { createElement } from '../schema/type-registry';
+import type { SurveyElement } from '../schema/type-registry';
 
 export const DND_FIELD_TYPE = 'field';
 export const DND_PAGE_TYPE = 'page';
@@ -18,33 +19,33 @@ export const FLIP_MS = 150;
 
 /** A palette template being dragged (becomes a real element on drop). */
 export interface PaletteItem {
-  id: string;
-  isTemplate: true;
-  blockId: string;
-  label: string;
-  icon: string;
+    id: string;
+    isTemplate: true;
+    blockId: string;
+    label: string;
+    icon: string;
 }
 
 /** A real element wrapped for dragging. */
 export interface ElementWrapper {
-  id: string;
-  element: SurveyElement;
+    id: string;
+    element: SurveyElement;
 }
 
 /** Anything that can appear in a field dndzone mid-drag. */
 export type FieldDndItem = ElementWrapper | PaletteItem;
 
 export function isTemplate(item: FieldDndItem): item is PaletteItem {
-  return (item as PaletteItem).isTemplate === true;
+    return (item as PaletteItem).isTemplate === true;
 }
 
 export function isShadow(item: { id: string }): boolean {
-  return item.id === SHADOW_PLACEHOLDER_ITEM_ID;
+    return item.id === SHADOW_PLACEHOLDER_ITEM_ID;
 }
 
 /** Wrap a page's elements for a dndzone. */
 export function toWrappers(elements: SurveyElement[]): ElementWrapper[] {
-  return elements.map((element) => ({ id: element.name, element }));
+    return elements.map((element) => ({ id: element.name, element }));
 }
 
 /**
@@ -52,19 +53,25 @@ export function toWrappers(elements: SurveyElement[]): ElementWrapper[] {
  * become freshly-created elements with a name unique against `existingNames`
  * (which is mutated as we go so multiple drops in one gesture stay unique).
  */
-export function fromWrappers(items: FieldDndItem[], existingNames: Set<string>): SurveyElement[] {
-  const out: SurveyElement[] = [];
-  for (const item of items) {
-    if (isShadow(item)) {
-      continue;
+export function fromWrappers(
+    items: FieldDndItem[],
+    existingNames: Set<string>,
+): SurveyElement[] {
+    const out: SurveyElement[] = [];
+
+    for (const item of items) {
+        if (isShadow(item)) {
+            continue;
+        }
+
+        if (isTemplate(item)) {
+            const el = createElement(item.blockId, existingNames);
+            existingNames.add(el.name);
+            out.push(el);
+        } else {
+            out.push(item.element);
+        }
     }
-    if (isTemplate(item)) {
-      const el = createElement(item.blockId, existingNames);
-      existingNames.add(el.name);
-      out.push(el);
-    } else {
-      out.push(item.element);
-    }
-  }
-  return out;
+
+    return out;
 }

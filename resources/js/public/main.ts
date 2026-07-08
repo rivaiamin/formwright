@@ -11,59 +11,74 @@ import 'survey-core/defaultV2.min.css';
 import 'survey-core/survey.i18n';
 import { renderSurvey } from 'survey-js-ui';
 
-import { applyStoredTheme, registerCustomProperties } from '../builder/survey-setup';
+import {
+    applyStoredTheme,
+    registerCustomProperties,
+} from '../builder/survey-setup';
 
 interface MountOptions {
-  schema: Record<string, unknown>;
-  locale?: string;
-  submitUrl: string;
-  csrf?: string;
+    schema: Record<string, unknown>;
+    locale?: string;
+    submitUrl: string;
+    csrf?: string;
 }
 
 function setStatus(text: string): void {
-  const node = document.querySelector<HTMLElement>('[data-testid="submit-status"]');
-  if (node) {
-    node.textContent = text;
-    node.dataset.state = text.split(':')[0];
-  }
+    const node = document.querySelector<HTMLElement>(
+        '[data-testid="submit-status"]',
+    );
+
+    if (node) {
+        node.textContent = text;
+        node.dataset.state = text.split(':')[0];
+    }
 }
 
 export function mount(el: HTMLElement, opts: MountOptions): void {
-  registerCustomProperties();
+    registerCustomProperties();
 
-  const model = new Model(opts.schema);
-  if (opts.locale && opts.locale !== 'default') {
-    model.locale = opts.locale;
-  }
-  applyStoredTheme(model, opts.schema);
+    const model = new Model(opts.schema);
 
-  model.onComplete.add(async (sender) => {
-    try {
-      const res = await fetch(opts.submitUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-          ...(opts.csrf ? { 'X-CSRF-TOKEN': opts.csrf } : {}),
-        },
-        body: JSON.stringify({ data: sender.data, locale: opts.locale ?? 'default' }),
-      });
-      const body = (await res.json().catch(() => ({}))) as { id?: number };
-      setStatus(res.ok ? `submitted:${body.id ?? ''}` : `error:${res.status}`);
-    } catch {
-      setStatus('error:network');
+    if (opts.locale && opts.locale !== 'default') {
+        model.locale = opts.locale;
     }
-  });
 
-  renderSurvey(model, el);
+    applyStoredTheme(model, opts.schema);
+
+    model.onComplete.add(async (sender) => {
+        try {
+            const res = await fetch(opts.submitUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    ...(opts.csrf ? { 'X-CSRF-TOKEN': opts.csrf } : {}),
+                },
+                body: JSON.stringify({
+                    data: sender.data,
+                    locale: opts.locale ?? 'default',
+                }),
+            });
+            const body = (await res.json().catch(() => ({}))) as {
+                id?: number;
+            };
+            setStatus(
+                res.ok ? `submitted:${body.id ?? ''}` : `error:${res.status}`,
+            );
+        } catch {
+            setStatus('error:network');
+        }
+    });
+
+    renderSurvey(model, el);
 }
 
 declare global {
-  interface Window {
-    FormwrightForm?: { mount: typeof mount };
-  }
+    interface Window {
+        FormwrightForm?: { mount: typeof mount };
+    }
 }
 
 if (typeof window !== 'undefined') {
-  window.FormwrightForm = { mount };
+    window.FormwrightForm = { mount };
 }
