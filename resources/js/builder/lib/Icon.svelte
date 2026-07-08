@@ -27,6 +27,12 @@
     multitext: 'M4 6h16M4 12h16M4 18h10M4 6v12',
     matrix: 'M4 4h16v16H4zM4 10h16M4 15h16M10 4v16M15 4v16',
     sigma: 'M18 5H7l6 7-6 7h11',
+    'image-picker': 'M3 4h8v8H3zM13 4h8v8h-8zM3 14h8v6H3zM13 14h8v6h-8zM15.5 16.5h3',
+    buttons: 'M3 8h7v8H3zM14 8h7v8h-7z',
+    panel: 'M4 4h16v16H4zM4 9h16M7 13h10M7 16h6',
+    'panel-repeat': 'M6 3h12v7H6zM6 14h12v7H6zM3 12h18M8 12l-2-2M16 12l2 2',
+    'matrix-cells': 'M4 4h16v16H4zM4 10h16M4 15h16M12 4v16M14 12l1.5 1.5L18 11',
+    'matrix-rows': 'M4 5h16v5H4zM4 12h16v5H4zM9 20h6M12 18v4',
   };
 
   let d = $derived(PATHS[name] ?? 'M5 5h14v14H5z');

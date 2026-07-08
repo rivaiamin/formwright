@@ -109,6 +109,9 @@ function commonProps(): PropertyDescriptor[] {
 
 const choicesProp: PropertyDescriptor = { key: 'choices', label: 'Options', kind: 'choices' };
 
+/** The shared options offered inside a matrixdropdown's select-style cells. */
+const cellChoicesProp: PropertyDescriptor = { key: 'choices', label: 'Cell options', kind: 'choices' };
+
 // ---- The registry -----------------------------------------------------------
 // Order is defensive (specific → general); matches() are specific enough that
 // order is not strictly required, but keep number/date before plain text anyway.
@@ -371,7 +374,125 @@ export const registry: BlockDefinition[] = [
     matches: (el) => el.type === 'matrix',
   },
 
-  // 18. Expression (read-only computed display)
+  // 18. Panel — a titled group of fields (children live in `elements`)
+  {
+    id: 'panel',
+    label: 'Panel (group)',
+    icon: 'panel',
+    surveyType: 'panel',
+    factory: (name) => ({ type: 'panel', name, elements: [] }),
+    properties: [
+      NAME_PROP,
+      { key: 'title', label: 'Title', kind: 'localizedText', appliesToLocale: true },
+      { key: 'description', label: 'Description', kind: 'localizedText', appliesToLocale: true, advanced: true },
+      {
+        key: 'state', label: 'Collapsible', kind: 'select', advanced: true,
+        options: [
+          { value: 'default', label: 'Not collapsible' },
+          { value: 'expanded', label: 'Collapsible, open' },
+          { value: 'collapsed', label: 'Collapsible, closed' },
+        ],
+      },
+    ],
+    matches: (el) => el.type === 'panel',
+  },
+
+  // 19. Repeating group — the respondent adds copies of `templateElements`
+  {
+    id: 'panel_dynamic',
+    label: 'Repeating group',
+    icon: 'panel-repeat',
+    surveyType: 'paneldynamic',
+    factory: (name) => ({ type: 'paneldynamic', name, templateElements: [], panelCount: 1 }),
+    properties: [
+      ...commonProps(),
+      { key: 'panelCount', label: 'Initial copies', kind: 'number', default: 1 },
+      { key: 'minPanelCount', label: 'Minimum copies', kind: 'number', advanced: true },
+      { key: 'maxPanelCount', label: 'Maximum copies', kind: 'number', advanced: true },
+      { key: 'panelAddText', label: '“Add” button', kind: 'localizedText', appliesToLocale: true, advanced: true },
+      { key: 'templateTitle', label: 'Copy title', kind: 'localizedText', appliesToLocale: true, advanced: true },
+    ],
+    matches: (el) => el.type === 'paneldynamic',
+  },
+
+  // 20. Button group (single choice rendered as buttons)
+  {
+    id: 'button_group',
+    label: 'Button group',
+    icon: 'buttons',
+    surveyType: 'buttongroup',
+    factory: (name) => ({ type: 'buttongroup', name, choices: [] }),
+    properties: [...commonProps(), choicesProp],
+    matches: (el) => el.type === 'buttongroup',
+  },
+
+  // 19. Matrix (dropdown) — rows x typed columns, one answer per cell
+  {
+    id: 'matrix_dropdown',
+    label: 'Matrix (cells)',
+    icon: 'matrix-cells',
+    surveyType: 'matrixdropdown',
+    factory: (name) => ({
+      type: 'matrixdropdown',
+      name,
+      columns: [{ name: 'column1', title: { default: 'Column 1' }, cellType: 'dropdown' }],
+      rows: [
+        { value: 'row1', text: { default: 'Row 1' } },
+        { value: 'row2', text: { default: 'Row 2' } },
+      ],
+      choices: [
+        { value: 'one', text: { default: 'One' } },
+        { value: 'two', text: { default: 'Two' } },
+      ],
+    }),
+    properties: [...commonProps(), cellChoicesProp],
+    matches: (el) => el.type === 'matrixdropdown',
+  },
+
+  // 20. Matrix (dynamic) — typed columns, the respondent adds rows
+  {
+    id: 'matrix_dynamic',
+    label: 'Matrix (add rows)',
+    icon: 'matrix-rows',
+    surveyType: 'matrixdynamic',
+    factory: (name) => ({
+      type: 'matrixdynamic',
+      name,
+      columns: [{ name: 'column1', title: { default: 'Column 1' }, cellType: 'text' }],
+      rowCount: 2,
+    }),
+    properties: [
+      ...commonProps(),
+      { key: 'rowCount', label: 'Initial rows', kind: 'number', default: 2 },
+      { key: 'minRowCount', label: 'Minimum rows', kind: 'number', advanced: true },
+      { key: 'maxRowCount', label: 'Maximum rows', kind: 'number', advanced: true },
+      { key: 'addRowText', label: '“Add row” button', kind: 'localizedText', appliesToLocale: true, advanced: true },
+    ],
+    matches: (el) => el.type === 'matrixdynamic',
+  },
+
+  // 21. Image picker (choose one/many images)
+  {
+    id: 'image_picker',
+    label: 'Image choice',
+    icon: 'image-picker',
+    surveyType: 'imagepicker',
+    factory: (name) => ({
+      type: 'imagepicker',
+      name,
+      choices: [{ value: 'option_1', imageLink: '' }],
+    }),
+    properties: [
+      ...commonProps(),
+      { key: 'multiSelect', label: 'Allow multiple', kind: 'boolean', advanced: true },
+      { key: 'showLabel', label: 'Show labels under images', kind: 'boolean', advanced: true },
+      { key: 'imageWidth', label: 'Image width', kind: 'text', advanced: true },
+      { key: 'imageHeight', label: 'Image height', kind: 'text', advanced: true },
+    ],
+    matches: (el) => el.type === 'imagepicker',
+  },
+
+  // 19. Expression (read-only computed display)
   {
     id: 'expression',
     label: 'Expression',

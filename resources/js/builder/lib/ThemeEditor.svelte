@@ -22,12 +22,19 @@
     { label: 'Midnight', color: '#38bdf8', palette: 'dark' },
   ];
 
+  /** survey-core's two background surfaces, and their stock light-theme values. */
+  const DEFAULT_PAGE_BG = '#f3f3f3';
+  const DEFAULT_SURFACE_BG = '#ffffff';
+
   let accent = $derived(store.themeVar('--sjs-primary-backcolor') || DEFAULT_ACCENT);
   let palette = $derived(store.themeProp('colorPalette') === 'dark' ? 'dark' : 'light');
   let panelless = $derived(store.themeProp('isPanelless') === true);
   let radius = $derived(store.themeVar('--sjs-corner-radius') || 'default');
   let baseUnit = $derived(store.themeVar('--sjs-base-unit') || 'default');
   let fontFamily = $derived(store.themeVar('--sjs-font-family') || 'default');
+  let pageBg = $derived(store.themeVar('--sjs-general-backcolor-dim') || DEFAULT_PAGE_BG);
+  let surfaceBg = $derived(store.themeVar('--sjs-general-backcolor') || DEFAULT_SURFACE_BG);
+  let customBg = $derived(store.themeVar('--sjs-general-backcolor-dim') !== '' || store.themeVar('--sjs-general-backcolor') !== '');
 
   /** Set the accent colour plus its hover/foreground companions. */
   function setAccent(color: string): void {
@@ -36,9 +43,41 @@
     store.setThemeVar('--sjs-primary-forecolor', '#ffffff');
   }
 
+  /**
+   * The page background. survey-core derives several shades from this one; the
+   * `-dim-light`/`-dim-dark` companions must move with it or panels stop
+   * separating from the page — which is why a lone background colour looked wrong.
+   */
+  function setPageBackground(color: string): void {
+    store.setThemeVar('--sjs-general-backcolor-dim', color);
+    store.setThemeVar('--sjs-general-backcolor-dim-light', color);
+    store.setThemeVar('--sjs-general-backcolor-dim-dark', color);
+  }
+
+  /** The question/panel surface that sits on top of the page background. */
+  function setSurfaceBackground(color: string): void {
+    store.setThemeVar('--sjs-general-backcolor', color);
+    store.setThemeVar('--sjs-general-backcolor-dark', color);
+  }
+
+  /** Drop every background override, back to the palette's stock surfaces. */
+  function clearBackgrounds(): void {
+    for (const v of [
+      '--sjs-general-backcolor-dim',
+      '--sjs-general-backcolor-dim-light',
+      '--sjs-general-backcolor-dim-dark',
+      '--sjs-general-backcolor',
+      '--sjs-general-backcolor-dark',
+    ]) {
+      store.setThemeVar(v, '');
+    }
+  }
+
   function applyPreset(p: { color: string; palette?: 'dark' }): void {
     setAccent(p.color);
     store.setThemeProp('colorPalette', p.palette === 'dark' ? 'dark' : '');
+    // Presets define a palette; stale background overrides would fight it.
+    clearBackgrounds();
   }
 
   /** A select whose "default" option removes the variable entirely. */
@@ -96,6 +135,16 @@
     </div>
 
     <div class="field">
+      <label class="field__label" for="theme-page-bg">Page background</label>
+      <input id="theme-page-bg" type="color" data-testid="theme-page-bg" value={pageBg} oninput={(e) => setPageBackground(e.currentTarget.value)} />
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="theme-surface-bg">Question background</label>
+      <input id="theme-surface-bg" type="color" data-testid="theme-surface-bg" value={surfaceBg} oninput={(e) => setSurfaceBackground(e.currentTarget.value)} />
+    </div>
+
+    <div class="field">
       <label class="field__label" for="theme-font">Font</label>
       <select id="theme-font" value={fontFamily} onchange={(e) => pickVar('--sjs-font-family', e.currentTarget.value)}>
         <option value="default">System</option>
@@ -104,6 +153,12 @@
       </select>
     </div>
   </div>
+
+  {#if customBg}
+    <button type="button" class="theme__reset" data-testid="theme-clear-bg" onclick={clearBackgrounds}>
+      Use the palette’s default backgrounds
+    </button>
+  {/if}
 
   <label class="field__check">
     <input type="checkbox" data-testid="theme-panelless" checked={panelless} onchange={(e) => store.setThemeProp('isPanelless', e.currentTarget.checked ? true : '')} />

@@ -168,6 +168,37 @@ function clone<T>(value: T): T {
   return structuredClone($state.snapshot(value) as T);
 }
 
+/** Element properties whose value is a nested list of elements. */
+const NESTED_KEYS = ['elements', 'templateElements'] as const;
+
+/** `base`, or `base_2`, `base_3`… until it is not already taken. */
+function uniqueName(base: string, taken: Set<string>): string {
+  if (!taken.has(base)) {
+    return base;
+  }
+  let i = 1;
+  let candidate = base;
+  while (taken.has(candidate)) {
+    candidate = `${base}_${++i}`;
+  }
+  return candidate;
+}
+
+/** Give every nested child of `el` a name that is unique against `taken`. */
+function renameChildren(el: SurveyElement, taken: Set<string>): void {
+  for (const key of NESTED_KEYS) {
+    const nested = el[key];
+    if (!Array.isArray(nested)) {
+      continue;
+    }
+    for (const child of nested as SurveyElement[]) {
+      child.name = uniqueName(String(child.name), taken);
+      taken.add(child.name);
+      renameChildren(child, taken);
+    }
+  }
+}
+
 /** Turn a display label into a stable snake_case value. */
 function slugify(text: string): string {
   const s = text
@@ -324,15 +355,84 @@ export class BuilderStore {
     return names;
   }
 
-  findElement(name: string): { el: SurveyElement; pageIndex: number; index: number } | null {
+  /**
+   * Locate an element anywhere in the tree, including inside panels
+   * (`elements`) and repeating groups (`templateElements`). Returns the array
+   * that actually holds it, so mutators can splice without knowing the depth.
+   */
+  #locate(name: string): { el: SurveyElement; container: SurveyElement[]; index: number; pageIndex: number } | null {
+    const search = (
+      els: SurveyElement[],
+      pageIndex: number,
+    ): { el: SurveyElement; container: SurveyElement[]; index: number; pageIndex: number } | null => {
+      for (let i = 0; i < els.length; i++) {
+        const el = els[i];
+        if (el.name === name) {
+          return { el, container: els, index: i, pageIndex };
+        }
+        for (const key of NESTED_KEYS) {
+          const nested = el[key];
+          if (Array.isArray(nested)) {
+            const hit = search(nested as SurveyElement[], pageIndex);
+            if (hit) {
+              return hit;
+            }
+          }
+        }
+      }
+      return null;
+    };
+
     for (let p = 0; p < this.schema.pages.length; p++) {
-      const els = this.schema.pages[p].elements ?? [];
-      const i = els.findIndex((e) => e.name === name);
-      if (i !== -1) {
-        return { el: els[i], pageIndex: p, index: i };
+      const hit = search(this.schema.pages[p].elements ?? [], p);
+      if (hit) {
+        return hit;
       }
     }
     return null;
+  }
+
+  findElement(name: string): { el: SurveyElement; pageIndex: number; index: number } | null {
+    const hit = this.#locate(name);
+    return hit ? { el: hit.el, pageIndex: hit.pageIndex, index: hit.index } : null;
+  }
+
+  /** The child array a container element holds its children in. */
+  childKeyOf(el: SurveyElement): 'elements' | 'templateElements' {
+    return el.type === 'paneldynamic' ? 'templateElements' : 'elements';
+  }
+
+  /** True when this element nests other elements (panel / repeating group). */
+  isContainer(el: SurveyElement): boolean {
+    return el.type === 'panel' || el.type === 'paneldynamic';
+  }
+
+  /** Replace a container's children wholesale (used by its own drag zone). */
+  setContainerElements(name: string, elements: SurveyElement[]): void {
+    const el = this.#locate(name)?.el;
+    if (!el) {
+      return;
+    }
+    el[this.childKeyOf(el)] = elements;
+    this.#markDirty();
+  }
+
+  /** Add a fresh palette block inside a container. */
+  addBlockToContainer(blockId: string, containerName: string, atIndex?: number): SurveyElement | null {
+    const container = this.#locate(containerName)?.el;
+    if (!container) {
+      return null;
+    }
+    const key = this.childKeyOf(container);
+    if (!Array.isArray(container[key])) {
+      container[key] = [];
+    }
+    const children = container[key] as SurveyElement[];
+    const el = createElement(blockId, this.allNames());
+    children.splice(atIndex ?? children.length, 0, el);
+    this.#structuralChange();
+    this.select(el.name);
+    return el;
   }
 
   /** The selected element's name, or null — kept for the many element-centric
@@ -355,15 +455,24 @@ export class BuilderStore {
     return index === -1 ? null : { page: this.schema.pages[index], index };
   }
 
-  /** Top-level element names in document order (for logic clause pickers). */
+  /**
+   * Question names in document order, for logic clause pickers. Descends into
+   * panels (their children share the survey's data scope) but NOT into repeating
+   * groups, whose `templateElements` are per-row and not addressable this way.
+   */
   elementNamesInOrder(): string[] {
     const out: string[] = [];
-    for (const page of this.schema.pages) {
-      for (const el of page.elements ?? []) {
-        if (typeof el.name === 'string') {
+    const walk = (els: SurveyElement[]): void => {
+      for (const el of els) {
+        if (el.type === 'panel') {
+          walk((el.elements as SurveyElement[] | undefined) ?? []);
+        } else if (typeof el.name === 'string' && el.type !== 'paneldynamic') {
           out.push(el.name);
         }
       }
+    };
+    for (const page of this.schema.pages) {
+      walk(page.elements ?? []);
     }
     return out;
   }
@@ -596,29 +705,30 @@ export class BuilderStore {
 
   /** Deep-copy an element in place (unique name), select the copy. */
   duplicateElement(name: string): void {
-    const found = this.findElement(name);
+    const found = this.#locate(name);
     if (!found) {
       return;
     }
     const copy = clone($state.snapshot(found.el) as SurveyElement);
     const taken = this.allNames();
-    let candidate = `${found.el.name}_copy`;
-    let i = 1;
-    while (taken.has(candidate)) {
-      candidate = `${found.el.name}_copy_${++i}`;
-    }
-    copy.name = candidate;
-    this.schema.pages[found.pageIndex].elements.splice(found.index + 1, 0, copy);
+
+    copy.name = uniqueName(`${found.el.name}_copy`, taken);
+    taken.add(copy.name);
+    // A duplicated panel brings its children with it — rename those too, or the
+    // copy would reuse names that already exist elsewhere in the form.
+    renameChildren(copy, taken);
+
+    found.container.splice(found.index + 1, 0, copy);
     this.#structuralChange();
     this.select(copy.name);
   }
 
   removeElement(name: string): void {
-    const found = this.findElement(name);
+    const found = this.#locate(name);
     if (!found) {
       return;
     }
-    this.schema.pages[found.pageIndex].elements.splice(found.index, 1);
+    found.container.splice(found.index, 1);
     if (this.selectedName === name) {
       this.select(null);
     }
@@ -888,18 +998,34 @@ export class BuilderStore {
     this.#markDirty();
   }
 
+  /** Set an arbitrary plain property on one choice (e.g. an imagepicker's
+   *  `imageLink`). Empty values delete the key. */
+  setChoiceProp(name: string, index: number, prop: string, value: unknown): void {
+    const choices = this.findElement(name)?.el.choices as Array<Record<string, unknown>> | undefined;
+    if (!choices?.[index]) {
+      return;
+    }
+    assignPlain(choices[index], prop, value);
+    this.#markDirty();
+  }
+
   // -- dynamic choice sources (choicesByUrl / choicesFromQuestion) -------------
 
   /** Names of choice-based questions (for carry-forward), excluding one. */
   choiceQuestionNames(exclude?: string): string[] {
-    const CHOICE_TYPES = new Set(['radiogroup', 'checkbox', 'dropdown', 'tagbox', 'ranking', 'imagepicker']);
+    const CHOICE_TYPES = new Set(['radiogroup', 'checkbox', 'dropdown', 'tagbox', 'ranking', 'imagepicker', 'buttongroup']);
     const out: string[] = [];
-    for (const page of this.schema.pages) {
-      for (const el of page.elements ?? []) {
-        if (CHOICE_TYPES.has(el.type) && el.name !== exclude) {
+    const walk = (els: SurveyElement[]): void => {
+      for (const el of els) {
+        if (el.type === 'panel') {
+          walk((el.elements as SurveyElement[] | undefined) ?? []);
+        } else if (CHOICE_TYPES.has(el.type) && el.name !== exclude) {
           out.push(el.name);
         }
       }
+    };
+    for (const page of this.schema.pages) {
+      walk(page.elements ?? []);
     }
     return out;
   }
@@ -1272,8 +1398,9 @@ function resolveGroup(label: string, ids: string[]): PaletteGroup {
  */
 export const PALETTE_GROUPS: PaletteGroup[] = [
   resolveGroup('Essentials', ['short_text', 'long_text', 'number', 'date']),
-  resolveGroup('Choices', ['single_choice', 'multiple_choice', 'dropdown', 'tagbox', 'boolean', 'rating', 'ranking']),
-  resolveGroup('Grids', ['matrix', 'multiple_text']),
+  resolveGroup('Choices', ['single_choice', 'multiple_choice', 'dropdown', 'tagbox', 'boolean', 'button_group', 'rating', 'ranking', 'image_picker']),
+  resolveGroup('Grids', ['matrix', 'matrix_dropdown', 'matrix_dynamic', 'multiple_text']),
+  resolveGroup('Layout', ['panel', 'panel_dynamic']),
   resolveGroup('Content', ['statement', 'image', 'expression']),
   resolveGroup('Uploads', ['file', 'signature']),
 ];

@@ -16,6 +16,7 @@
   import type { BuilderStore, SurveyPage } from '../store.svelte';
   import { localizedValue } from '../store.svelte';
   import ElementCard from './ElementCard.svelte';
+  import PanelCard from './PanelCard.svelte';
 
   interface Props {
     store: BuilderStore;
@@ -148,7 +149,16 @@
         {#each pv.items as item (item.id)}
           {@const el = elementOf(item)}
           <div class="board__item">
-            {#if el}
+            {#if el && store.isContainer(el)}
+              <PanelCard
+                element={el}
+                {store}
+                selected={store.selectedName === el.name}
+                onselect={() => store.select(el.name)}
+                onremove={() => store.removeElement(el.name)}
+                onduplicate={() => store.duplicateElement(el.name)}
+              />
+            {:else if el}
               <ElementCard
                 element={el}
                 {store}
