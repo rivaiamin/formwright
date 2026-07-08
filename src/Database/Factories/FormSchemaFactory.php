@@ -18,12 +18,13 @@ class FormSchemaFactory extends Factory
      */
     public function definition(): array
     {
-        $name = fake()->unique()->words(3, true);
+        $words = fake()->unique()->words(3);
+        $name = Str::title(implode(' ', is_array($words) ? $words : [$words]));
 
         return [
-            'name' => Str::title($name),
+            'name' => $name,
             'slug' => Str::slug($name).'-'.fake()->unique()->numberBetween(1, 99999),
-            'json' => FormSchema::blankSchema(Str::title($name)),
+            'json' => FormSchema::blankSchema($name),
             'default_locale' => 'default',
             'available_locales' => ['default'],
             'scoring_enabled' => false,

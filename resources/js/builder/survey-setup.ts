@@ -12,15 +12,38 @@ import { Serializer } from 'survey-core';
 let registered = false;
 
 export function registerCustomProperties(): void {
-  if (registered) {
-    return;
-  }
-  registered = true;
+    if (registered) {
+        return;
+    }
 
-  Serializer.addProperty('question', {
-    name: 'points:number',
-    default: 1,
-    category: 'general',
-    visible: false,
-  });
+    registered = true;
+
+    Serializer.addProperty('question', {
+        name: 'points:number',
+        default: 1,
+        category: 'general',
+        visible: false,
+    });
+}
+
+/**
+ * Apply a schema-embedded theme, if any. We store the survey-core theme object
+ * under a `theme` key in our canonical JSON (survey-core does not read it from
+ * the model automatically), then apply it to the live Model in every renderer —
+ * so Preview and the public form look identical.
+ */
+export function applyStoredTheme(
+    model: { applyTheme: (theme: unknown) => void },
+    schema: Record<string, unknown>,
+): void {
+    const theme = schema.theme;
+
+    if (
+        theme &&
+        typeof theme === 'object' &&
+        !Array.isArray(theme) &&
+        Object.keys(theme as object).length > 0
+    ) {
+        model.applyTheme(theme as never);
+    }
 }

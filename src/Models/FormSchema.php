@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use Database\Factories\FormSchemaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 /**
@@ -20,7 +22,7 @@ use Illuminate\Support\Str;
  */
 class FormSchema extends Model
 {
-    /** @use HasFactory<\Database\Factories\FormSchemaFactory> */
+    /** @use HasFactory<FormSchemaFactory> */
     use BelongsToTenant, HasFactory;
 
     protected $fillable = [
@@ -56,6 +58,19 @@ class FormSchema extends Model
                 $schema->slug = static::uniqueSlug($schema->name ?: 'form');
             }
         });
+    }
+
+    /**
+     * Point-in-time snapshots of this form's JSON, newest first.
+     *
+     * @return HasMany<FormSchemaRevision, $this>
+     */
+    public function revisions(): HasMany
+    {
+        /** @var class-string<FormSchemaRevision> $model */
+        $model = config('formbuilder.models.form_schema_revision', FormSchemaRevision::class);
+
+        return $this->hasMany($model, 'form_schema_id')->latest('id');
     }
 
     /**

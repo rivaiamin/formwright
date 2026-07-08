@@ -3,16 +3,17 @@
 namespace App\Filament\Pages;
 
 use App\Contracts\AiAssistant;
+use App\Models\FormSchema;
+use App\Models\FormSchemaRevision;
 use App\Support\AiAssistantNotConfiguredException;
 use App\Support\SchemaValidationException;
 use App\Support\SchemaValidator;
 use BackedEnum;
-use Throwable;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
-use Illuminate\Database\Eloquent\Model;
 use Livewire\Attributes\Renderless;
+use Throwable;
 
 /**
  * The visual form designer. A full-page Livewire component that mounts the
@@ -43,6 +44,12 @@ class DesignerPage extends Page
 
     public function mount(): void
     {
+        $requested = request()->integer('record');
+
+        if ($requested > 0) {
+            $this->recordId = $requested;
+        }
+
         $record = $this->resolveRecord();
 
         $this->recordId = $record->getKey();
@@ -89,6 +96,8 @@ class DesignerPage extends Page
         $record->json = $json;
         $record->scoring_enabled = $this->schemaHasScoring($json);
         $record->save();
+
+        $this->recordRevision($record, $json);
 
         $this->schema = $json;
 
@@ -164,9 +173,87 @@ class DesignerPage extends Page
      * a single default form; a later phase wires it to a record chosen from a
      * resource list.
      */
-    protected function resolveRecord(): Model
+    /**
+     * Snapshot the just-saved JSON so the author can restore it later. Skipped
+     * when the schema is unchanged from the newest revision, so repeatedly
+     * hitting Save does not fill the history with identical entries.
+     *
+     * @param  array<string, mixed>  $json
+     */
+    protected function recordRevision(FormSchema $record, array $json): void
     {
-        /** @var class-string<Model> $model */
+        /** @var class-string<FormSchemaRevision> $model */
+        $model = config('formbuilder.models.form_schema_revision');
+
+        $newest = $model::query()
+            ->where('form_schema_id', $record->getKey())
+            ->latest('id')
+            ->first();
+
+        if ($newest !== null && $newest->json == $json) {
+            return;
+        }
+
+        $model::query()->create([
+            'form_schema_id' => $record->getKey(),
+            'user_id' => auth()->id(),
+            'json' => $json,
+        ]);
+    }
+
+    /**
+     * The saved revisions of the current form, newest first.
+     *
+     * @return array<int, array{id: int, savedAt: string, fields: int, current: bool}>
+     */
+    #[Renderless]
+    public function revisions(): array
+    {
+        /** @var class-string<FormSchemaRevision> $model */
+        $model = config('formbuilder.models.form_schema_revision');
+
+        $current = $this->resolveRecord();
+
+        return $model::query()
+            ->where('form_schema_id', $current->getKey())
+            ->latest('id')
+            ->limit(30)
+            ->get()
+            ->map(fn ($revision): array => [
+                'id' => $revision->getKey(),
+                'savedAt' => $revision->created_at?->diffForHumans() ?? '',
+                'fields' => $revision->fieldCount(),
+                'current' => $revision->json == $current->json,
+            ])
+            ->all();
+    }
+
+    /**
+     * Load one revision's JSON back into the builder. The builder applies it as a
+     * normal (undoable) schema replacement; nothing is written until Save.
+     *
+     * @return array{ok: bool, schema?: array<string, mixed>, error?: string}
+     */
+    #[Renderless]
+    public function restoreRevision(int $id): array
+    {
+        /** @var class-string<FormSchemaRevision> $model */
+        $model = config('formbuilder.models.form_schema_revision');
+
+        $revision = $model::query()
+            ->where('form_schema_id', $this->resolveRecord()->getKey())
+            ->find($id);
+
+        if ($revision === null) {
+            return ['ok' => false, 'error' => 'That revision no longer exists.'];
+        }
+
+        return ['ok' => true, 'schema' => $revision->json];
+    }
+
+    protected function resolveRecord(): FormSchema
+    {
+        /** @var class-string<FormSchema> $model */
         $model = config('formbuilder.models.form_schema');
 
         if ($this->recordId !== null) {

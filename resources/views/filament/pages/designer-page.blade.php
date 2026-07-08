@@ -30,6 +30,8 @@
                     onDirty: (dirty) => this.$dispatch('formwright-dirty', { dirty }),
                     reload: () => this.$wire.loadSchema(),
                     onAiDraft: (prompt) => this.$wire.aiDraft(prompt),
+                    onRevisions: () => this.$wire.revisions(),
+                    onRestore: (id) => this.$wire.restoreRevision(id),
                 });
             },
         }"

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\FormSchema;
+use App\Models\FormSchemaRevision;
 use App\Models\FormSubmission;
 
 return [
@@ -18,6 +19,7 @@ return [
 
     'models' => [
         'form_schema' => FormSchema::class,
+        'form_schema_revision' => FormSchemaRevision::class,
         'form_submission' => FormSubmission::class,
     ],
 
@@ -29,6 +31,7 @@ return [
 
     'tables' => [
         'form_schemas' => 'form_schemas',
+        'form_schema_revisions' => 'form_schema_revisions',
         'form_submissions' => 'form_submissions',
     ],
 

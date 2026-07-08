@@ -92,7 +92,7 @@ class ClaudeAiAssistant implements AiAssistant
             throw new RuntimeException('AI request failed: '.$response->status().' '.$response->body());
         }
 
-        $text = collect($response->json('content', []))
+        $text = $response->collect('content')
             ->where('type', 'text')
             ->pluck('text')
             ->implode('');
