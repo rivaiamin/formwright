@@ -145,10 +145,35 @@ export class BuilderStore {
   locales = $state<string[]>(['default']);
   rev = $state(0);
   dirty = $state(false);
-  /** True when an AI proposal has been applied and can be undone. */
-  undoAvailable = $state(false);
+  /** History availability, for the toolbar buttons. */
+  canUndo = $state(false);
+  canRedo = $state(false);
 
-  #undoSnapshot: SurveySchema | null = null;
+  /**
+   * Undo history. `#past` holds states BEFORE the current one and `#future`
+   * holds states undone away from. `#present` mirrors the schema as of the last
+   * committed history entry, so `#markDirty()` (the single choke point every
+   * mutator already calls) can push the PRE-mutation state without each mutator
+   * having to snapshot itself.
+   */
+  #past: SurveySchema[] = [];
+  #future: SurveySchema[] = [];
+  #present: SurveySchema = { pages: [] };
+  /** Guards history writes while we are restoring a snapshot. */
+  #restoring = false;
+  /** Timestamp of the last history push, for coalescing typing bursts. */
+  #lastPushAt = 0;
+  /**
+   * What the last edit touched. Only consecutive edits to the SAME target (a
+   * typing burst in one field) coalesce. A `null` key marks a discrete action
+   * (add/delete/drag/…) which neither coalesces nor can be coalesced into.
+   */
+  #lastKey: string | null = null;
+
+  static readonly HISTORY_LIMIT = 50;
+  /** Edits closer together than this collapse into one history entry. */
+  static readonly COALESCE_MS = 450;
+
   #onDirty?: (dirty: boolean) => void;
 
   constructor(schema: SurveySchema, options: BuilderStoreOptions = {}) {
@@ -156,6 +181,7 @@ export class BuilderStore {
     this.locales = Array.from(new Set(['default', ...(options.locales ?? [])]));
     this.editingLocale = options.editingLocale ?? 'default';
     this.#onDirty = options.onDirty;
+    this.#resetHistory();
   }
 
   /** Add a locale to the authoring set (and switch to editing it). */
@@ -278,15 +304,98 @@ export class BuilderStore {
     this.selection = { kind: 'survey' };
   }
 
-  // -- mutations (do NOT bump rev; canvas projection already reflects them) ----
+  // -- undo / redo history -----------------------------------------------------
 
-  #markDirty(): void {
+  #syncHistoryFlags(): void {
+    this.canUndo = this.#past.length > 0;
+    this.canRedo = this.#future.length > 0;
+  }
+
+  /** Forget all history and re-baseline on the current schema. */
+  #resetHistory(): void {
+    this.#past = [];
+    this.#future = [];
+    this.#present = this.export();
+    this.#lastPushAt = 0;
+    this.#lastKey = null;
+    this.#syncHistoryFlags();
+  }
+
+  /**
+   * Record a history entry. Called post-mutation, so the state we push is
+   * `#present` — the schema as it was before this mutation. A burst of edits to
+   * the same target within COALESCE_MS collapses into one entry; anything else
+   * (a different field, or any discrete action) opens a new one.
+   */
+  #pushHistory(key: string | null): void {
+    const now = Date.now();
+    const coalesce = key !== null && key === this.#lastKey && now - this.#lastPushAt < BuilderStore.COALESCE_MS;
+
+    if (!coalesce) {
+      this.#past.push(this.#present);
+      if (this.#past.length > BuilderStore.HISTORY_LIMIT) {
+        this.#past.shift();
+      }
+      this.#future = []; // a fresh edit invalidates the redo branch
+    }
+    this.#lastKey = key;
+    this.#lastPushAt = now;
+    this.#present = this.export();
+    this.#syncHistoryFlags();
+  }
+
+  /** Swap the schema for a history snapshot without recording new history. */
+  #restore(schema: SurveySchema): void {
+    this.#restoring = true;
+    try {
+      this.replaceSchema(clone(schema), { markDirty: false });
+    } finally {
+      this.#restoring = false;
+    }
+    this.#present = clone(schema);
+    this.#lastPushAt = 0; // the next edit opens a fresh coalescing window
+    this.#lastKey = null;
     this.dirty = true;
     this.#onDirty?.(true);
+    this.#syncHistoryFlags();
+  }
+
+  /** Step back one history entry. */
+  undo(): void {
+    if (this.#past.length === 0) {
+      return;
+    }
+    this.#future.push(this.export());
+    this.#restore(this.#past.pop()!);
+  }
+
+  /** Step forward one history entry. */
+  redo(): void {
+    if (this.#future.length === 0) {
+      return;
+    }
+    this.#past.push(this.export());
+    this.#restore(this.#future.pop()!);
+  }
+
+  // -- mutations (do NOT bump rev; canvas projection already reflects them) ----
+
+  /**
+   * The single choke point every mutator calls. `coalesceKey` identifies what
+   * was edited; pass it for per-keystroke edits so a typing burst in one field
+   * becomes one undo step. Omit it (null) for discrete actions.
+   */
+  #markDirty(coalesceKey: string | null = null): void {
+    this.dirty = true;
+    this.#onDirty?.(true);
+    if (!this.#restoring) {
+      this.#pushHistory(coalesceKey);
+    }
   }
 
   /** A structural change made OUTSIDE drag-and-drop; rebuilds the canvas
-   *  projection by bumping `rev`. DnD commits deliberately skip this. */
+   *  projection by bumping `rev`. DnD commits deliberately skip this.
+   *  Structural edits are discrete actions, so they never coalesce. */
   #structuralChange(): void {
     this.rev++;
     this.#markDirty();
@@ -310,7 +419,7 @@ export class BuilderStore {
   /** Replace a page's element list wholesale (used by drag reorder / cross-page). */
   setPageElements(pageIndex: number, elements: SurveyElement[]): void {
     this.schema.pages[pageIndex].elements = elements;
-    this.#markDirty();
+    this.#markDirty(); // a drop is discrete — its own history entry
   }
 
   /** Replace the page list wholesale (used by page reorder). */
@@ -357,7 +466,7 @@ export class BuilderStore {
       return;
     }
     assignPlain(el, key, value);
-    this.#markDirty();
+    this.#markDirty(`prop:${name}:${key}`);
   }
 
   /** Set a localized property into a locale (default: the current editing locale),
@@ -368,7 +477,7 @@ export class BuilderStore {
       return;
     }
     assignLocalized(el, key, value, locale);
-    this.#markDirty();
+    this.#markDirty(`loc:${name}:${key}:${locale}`);
   }
 
   // -- survey (form) attributes -----------------------------------------------
@@ -376,12 +485,12 @@ export class BuilderStore {
   /** Set a plain attribute on the survey root (title/description live locale-side). */
   setSurveyProp(key: string, value: unknown): void {
     assignPlain(this.schema, key, value);
-    this.#markDirty();
+    this.#markDirty(`survey:${key}`);
   }
 
   setSurveyLocalizedProp(key: string, value: string, locale: string = this.editingLocale): void {
     assignLocalized(this.schema, key, value, locale);
-    this.#markDirty();
+    this.#markDirty(`surveyloc:${key}:${locale}`);
   }
 
   // -- page attributes --------------------------------------------------------
@@ -393,7 +502,7 @@ export class BuilderStore {
       return;
     }
     assignPlain(page, key, value);
-    this.#markDirty();
+    this.#markDirty(`page:${name}:${key}`);
   }
 
   setPageLocalizedProp(name: string, key: string, value: string, locale: string = this.editingLocale): void {
@@ -402,7 +511,7 @@ export class BuilderStore {
       return;
     }
     assignLocalized(page, key, value, locale);
-    this.#markDirty();
+    this.#markDirty(`pageloc:${name}:${key}:${locale}`);
   }
 
   /** Rename a page, guaranteeing uniqueness. Bumps rev (the canvas keys on name).
@@ -487,7 +596,7 @@ export class BuilderStore {
       return;
     }
     el.points = Number.isFinite(points) ? points : 1;
-    this.#markDirty();
+    this.#markDirty(`points:${name}`);
   }
 
   /** Set the native `correctAnswer`. An empty value clears it (still scored). */
@@ -667,7 +776,7 @@ export class BuilderStore {
       el.choicesByUrl = {};
     }
     assignPlain(el.choicesByUrl as Record<string, unknown>, key, value);
-    this.#markDirty();
+    this.#markDirty(`cbu:${name}:${key}`);
   }
 
   // -- generic sub-item lists (matrix rows/columns, multipletext items) --------
@@ -692,7 +801,7 @@ export class BuilderStore {
       return;
     }
     assignPlain(list[index], prop, value);
-    this.#markDirty();
+    this.#markDirty(`list:${name}:${key}:${index}:${prop}`);
   }
 
   /** Set a localized property on one list item, keeping a `default` present. */
@@ -709,7 +818,7 @@ export class BuilderStore {
       return;
     }
     assignLocalized(list[index], prop, value, locale);
-    this.#markDirty();
+    this.#markDirty(`listloc:${name}:${key}:${index}:${prop}:${locale}`);
   }
 
   removeListItem(name: string, key: string, index: number): void {
@@ -750,7 +859,7 @@ export class BuilderStore {
       return;
     }
     assignPlain(list[index], key, value);
-    this.#markDirty();
+    this.#markDirty(`validator:${name}:${index}:${key}`);
   }
 
   removeValidator(name: string, index: number): void {
@@ -785,7 +894,7 @@ export class BuilderStore {
       return;
     }
     assignPlain(list[index], key, value);
-    this.#markDirty();
+    this.#markDirty(`cond:${index}:${key}`);
   }
 
   removeCompletedCondition(index: number): void {
@@ -818,7 +927,7 @@ export class BuilderStore {
       return;
     }
     assignPlain(list[index], prop, value);
-    this.#markDirty();
+    this.#markDirty(`slist:${key}:${index}:${prop}`);
   }
 
   removeSurveyListItem(key: string, index: number): void {
@@ -856,7 +965,7 @@ export class BuilderStore {
     const theme = this.#theme();
     assignPlain(theme, key, value);
     this.#pruneTheme();
-    this.#markDirty();
+    this.#markDirty(`theme:${key}`);
   }
 
   /** Set a single CSS variable in the theme (empty value removes it). */
@@ -871,7 +980,7 @@ export class BuilderStore {
       delete theme.cssVariables;
     }
     this.#pruneTheme();
-    this.#markDirty();
+    this.#markDirty(`themevar:${name}`);
   }
 
   /** Read a theme CSS variable (or ''). */
@@ -927,25 +1036,19 @@ export class BuilderStore {
     this.rev++;
     if (markDirty) {
       this.#markDirty();
+    } else if (!this.#restoring) {
+      // A wholesale load (initial / revert / JSON apply) is a new baseline —
+      // there is nothing meaningful to undo back to.
+      this.#resetHistory();
     }
   }
 
-  /** Apply an AI-proposed schema, saving the current one so it can be undone. */
+  /**
+   * Apply an AI-proposed schema. It lands as a single, discrete history entry
+   * (never coalesced into a preceding keystroke), so one Undo reverts it.
+   */
   applyProposal(schema: SurveySchema): void {
-    this.#undoSnapshot = this.export();
     this.replaceSchema(schema);
-    this.undoAvailable = true;
-  }
-
-  /** Restore the schema from before the last applied AI proposal. */
-  undo(): void {
-    if (this.#undoSnapshot === null) {
-      return;
-    }
-    const snapshot = this.#undoSnapshot;
-    this.#undoSnapshot = null;
-    this.undoAvailable = false;
-    this.replaceSchema(snapshot);
   }
 
   /** A clean, serializable copy of the schema for saving/preview. */

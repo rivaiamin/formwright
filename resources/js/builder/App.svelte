@@ -71,6 +71,27 @@
     }
   }
 
+  /** Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z (or Ctrl+Y) redo — but never while the
+   *  user is typing in a field, where the browser's own undo should win. */
+  function onKeydown(e: KeyboardEvent): void {
+    if (!(e.ctrlKey || e.metaKey)) {
+      return;
+    }
+    const t = e.target as HTMLElement | null;
+    const tag = t?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable) {
+      return;
+    }
+    const key = e.key.toLowerCase();
+    if (key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      store.undo();
+    } else if ((key === 'z' && e.shiftKey) || key === 'y') {
+      e.preventDefault();
+      store.redo();
+    }
+  }
+
   async function revert(): Promise<void> {
     if (!reload) {
       return;
@@ -81,6 +102,8 @@
     status = { kind: 'idle', text: 'Reloaded from database' };
   }
 </script>
+
+<svelte:window onkeydown={onKeydown} />
 
 <div class="sv" data-testid="formwright-builder">
   <header class="sv-top">
@@ -129,9 +152,28 @@
       >
         ⚙ Form
       </button>
-      {#if store.undoAvailable}
-        <button type="button" class="sv-btn" data-testid="ai-undo" onclick={() => store.undo()}>Undo AI</button>
-      {/if}
+      <button
+        type="button"
+        class="sv-btn sv-btn--icon"
+        data-testid="undo"
+        title="Undo (Ctrl+Z)"
+        aria-label="Undo"
+        disabled={!store.canUndo}
+        onclick={() => store.undo()}
+      >
+        ↶
+      </button>
+      <button
+        type="button"
+        class="sv-btn sv-btn--icon"
+        data-testid="redo"
+        title="Redo (Ctrl+Shift+Z)"
+        aria-label="Redo"
+        disabled={!store.canRedo}
+        onclick={() => store.redo()}
+      >
+        ↷
+      </button>
       {#if reload}
         <button type="button" class="sv-btn" onclick={revert} disabled={saving}>Revert</button>
       {/if}
@@ -254,6 +296,11 @@
   .sv-btn:disabled {
     opacity: 0.5;
     cursor: default;
+  }
+  .sv-btn--icon {
+    padding: 0.4rem 0.6rem;
+    font-size: 1rem;
+    line-height: 1;
   }
   .sv-btn--primary {
     background: #f59e0b;
