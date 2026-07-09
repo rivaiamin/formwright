@@ -93,14 +93,27 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Storage Disk
+    | Uploads
     |--------------------------------------------------------------------------
     |
-    | The filesystem disk used for uploaded assets (file/image/signature).
+    | How uploaded assets (file / image / signature fields) are stored on the
+    | public fill-out form. `disk` is any filesystem disk (set FORMBUILDER_DISK=gcs
+    | to use the Google Cloud Storage disk defined in config/filesystems.php).
+    | `path_prefix` is the top-level folder; the default UploadStore then nests
+    | uploads under {prefix}/{tenant_id?}/{form-slug}/. `max_size_kb` caps each
+    | file server-side; `accepted_mimes` (null = allow any) is an optional MIME
+    | allowlist enforced on upload. Rate-limit the public upload endpoint via
+    | `throttle`.
     |
     */
 
-    'disk' => env('FORMBUILDER_DISK', 'public'),
+    'uploads' => [
+        'disk' => env('FORMBUILDER_DISK', 'public'),
+        'path_prefix' => env('FORMBUILDER_UPLOAD_PREFIX', 'formwright'),
+        'max_size_kb' => (int) env('FORMBUILDER_UPLOAD_MAX_KB', 10240),
+        'accepted_mimes' => null,
+        'throttle' => env('FORMBUILDER_UPLOAD_THROTTLE', '30,1'),
+    ],
 
     /*
     |--------------------------------------------------------------------------

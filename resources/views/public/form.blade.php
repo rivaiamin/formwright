@@ -23,6 +23,7 @@
             schema: @json($schema->json),
             locale: @json($locale),
             submitUrl: @json($submitUrl),
+            uploadUrl: @json($uploadUrl),
             csrf: document.querySelector('meta[name=csrf-token]').getAttribute('content'),
         };
     </script>
