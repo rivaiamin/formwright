@@ -137,6 +137,129 @@ const cellChoicesProp: PropertyDescriptor = {
     kind: 'choices',
 };
 
+// ---- Simple-matrix cell type -----------------------------------------------
+//
+// SurveyJS's native `matrix` question renders every cell as a single-select
+// radio and has no per-cell input type. To let the simple Matrix use other
+// inputs we keep `type: matrix` for the radio case, and for anything else store
+// the question as a `matrixdropdown` with a UNIFORM matrix-level `cellType` that
+// every column inherits (columns carry no own `cellType`). That matrix-level
+// `cellType` is a real survey-core property, so the exported JSON stays fully
+// canonical and renders identically in the preview and the public form.
+//
+// The presence of a matrix-level `cellType` is also the discriminator between a
+// uniform Matrix (this block) and the per-column "Matrix (cells)" block, which
+// never sets one.
+
+/** Cell-type options for the simple Matrix. `radio` keeps the native `matrix`. */
+export const MATRIX_CELL_TYPES: { value: string; label: string }[] = [
+    { value: 'radio', label: 'Single choice per row (radio)' },
+    { value: 'boolean', label: 'Multiple choice per row (checkboxes)' },
+    { value: 'dropdown', label: 'Dropdown in each cell' },
+    { value: 'rating', label: 'Rating in each cell' },
+    { value: 'text', label: 'Short answer in each cell' },
+    { value: 'comment', label: 'Long answer in each cell' },
+];
+
+/** Cell types that render a choice list, so the matrix needs shared `choices`. */
+const MATRIX_SELECT_CELL_TYPES = new Set([
+    'dropdown',
+    'radiogroup',
+    'checkbox',
+    'tagbox',
+]);
+
+/** True when a matrix cell type is choice-based and needs a shared `choices` list. */
+export function matrixCellNeedsChoices(cellType: string): boolean {
+    return MATRIX_SELECT_CELL_TYPES.has(cellType);
+}
+
+/** The active cell type of a simple/uniform Matrix element (`radio` for native). */
+export function matrixCellTypeOf(el: SurveyElement): string {
+    if (el.type === 'matrix') {
+        return 'radio';
+    }
+
+    return typeof el.cellType === 'string' ? el.cellType : 'dropdown';
+}
+
+/** Rename one key on a shallow copy of an item, preserving every other prop. */
+function renameItemKey(
+    item: Record<string, unknown>,
+    from: string,
+    to: string,
+): Record<string, unknown> {
+    if (!(from in item)) {
+        return { ...item };
+    }
+
+    const { [from]: value, ...rest } = item;
+
+    return { ...rest, [to]: value };
+}
+
+/**
+ * Switch a simple Matrix between the native single-select `matrix` (radio) and a
+ * uniform `matrixdropdown` whose columns all inherit one matrix-level `cellType`.
+ * Mutates `el` in place, preserving its rows and columns (only the column key
+ * names differ: `value`/`text` for `matrix`, `name`/`title` for `matrixdropdown`).
+ */
+export function convertMatrixCellType(
+    el: SurveyElement,
+    cellType: string,
+): void {
+    const columns = Array.isArray(el.columns)
+        ? (el.columns as Record<string, unknown>[])
+        : [];
+
+    if (cellType === 'radio') {
+        if (el.type !== 'matrix') {
+            el.columns = columns.map((c) => {
+                const { cellType: _own, ...rest } = c;
+
+                return renameItemKey(
+                    renameItemKey(rest, 'name', 'value'),
+                    'title',
+                    'text',
+                );
+            });
+        }
+
+        el.type = 'matrix';
+        delete el.cellType;
+        delete el.choices;
+
+        return;
+    }
+
+    if (el.type === 'matrix') {
+        el.columns = columns.map((c) =>
+            renameItemKey(renameItemKey(c, 'value', 'name'), 'text', 'title'),
+        );
+    } else {
+        // Already a matrixdropdown: drop any per-column cellType so it stays uniform.
+        el.columns = columns.map((c) => {
+            const { cellType: _own, ...rest } = c;
+
+            return rest;
+        });
+    }
+
+    el.type = 'matrixdropdown';
+    el.cellType = cellType;
+
+    if (matrixCellNeedsChoices(cellType)) {
+        if (!Array.isArray(el.choices) || el.choices.length === 0) {
+            el.choices = [
+                { value: 'item1', text: { default: 'Item 1' } },
+                { value: 'item2', text: { default: 'Item 2' } },
+            ];
+        }
+    } else {
+        delete el.choices;
+    }
+}
+
 // ---- The registry -----------------------------------------------------------
 // Order is defensive (specific → general); matches() are specific enough that
 // order is not strictly required, but keep number/date before plain text anyway.
@@ -494,7 +617,11 @@ export const registry: BlockDefinition[] = [
             ],
         }),
         properties: [...commonProps()],
-        matches: (el) => el.type === 'matrix',
+        // Owns the native single-select `matrix` AND uniform `matrixdropdown`s that
+        // carry a matrix-level `cellType` (created by the Cell type selector below).
+        matches: (el) =>
+            el.type === 'matrix' ||
+            (el.type === 'matrixdropdown' && typeof el.cellType === 'string'),
     },
 
     // 18. Panel — a titled group of fields (children live in `elements`)
@@ -621,7 +748,10 @@ export const registry: BlockDefinition[] = [
             ],
         }),
         properties: [...commonProps(), cellChoicesProp],
-        matches: (el) => el.type === 'matrixdropdown',
+        // Per-column cells only: a matrix-level `cellType` means it's a uniform
+        // simple Matrix, owned by the `matrix` block above.
+        matches: (el) =>
+            el.type === 'matrixdropdown' && typeof el.cellType !== 'string',
     },
 
     // 20. Matrix (dynamic) — typed columns, the respondent adds rows
