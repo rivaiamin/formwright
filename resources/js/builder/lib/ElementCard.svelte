@@ -61,6 +61,38 @@
         );
     }
 
+    /**
+     * Column headers for a simple Matrix, normalized across the two storage
+     * shapes: native `matrix` uses value/text, a uniform `matrixdropdown` (other
+     * cell types) uses name/title.
+     */
+    function matrixColumns(): Array<{ key: string; label: string }> {
+        return columns().map((c) => {
+            const raw = c as {
+                value?: unknown;
+                text?: unknown;
+                name?: unknown;
+                title?: unknown;
+            };
+            const key = String(raw.value ?? raw.name ?? '');
+            const label =
+                localizedValue((raw.text ?? raw.title) as never, locale) || key;
+
+            return { key, label };
+        });
+    }
+
+    /** The cell input of a simple Matrix: `radio` (native) or the matrix cellType. */
+    function matrixCellType(): string {
+        if (element.type === 'matrixdropdown') {
+            return typeof element.cellType === 'string'
+                ? element.cellType
+                : 'dropdown';
+        }
+
+        return 'radio';
+    }
+
     function stop(e: Event): void {
         e.stopPropagation();
     }
@@ -338,26 +370,36 @@
                     {/each}
                 </div>
             {:else if block?.id === 'matrix'}
+                {@const cols = matrixColumns()}
+                {@const cellType = matrixCellType()}
                 <div
                     class="prev-matrix"
-                    style={`grid-template-columns: minmax(3rem,1fr) repeat(${Math.max(columns().length, 1)}, auto);`}
+                    style={`grid-template-columns: minmax(3rem,1fr) repeat(${Math.max(cols.length, 1)}, auto);`}
                 >
                     <span></span>
-                    {#each columns() as col (col.value)}
-                        <span class="prev-matrix__col"
-                            >{localizedValue(col.text as never, locale) ||
-                                col.value}</span
-                        >
+                    {#each cols as col (col.key)}
+                        <span class="prev-matrix__col">{col.label}</span>
                     {/each}
                     {#each rows() as row (row.value)}
                         <span class="prev-matrix__row"
                             >{localizedValue(row.text as never, locale) ||
                                 row.value}</span
                         >
-                        {#each columns() as col (col.value)}
-                            <span
-                                class="prev-mark prev-mark--radio prev-matrix__cell"
-                            ></span>
+                        {#each cols as col (col.key)}
+                            {#if cellType === 'radio'}
+                                <span
+                                    class="prev-mark prev-mark--radio prev-matrix__cell"
+                                ></span>
+                            {:else if cellType === 'boolean'}
+                                <span class="prev-mark prev-matrix__cell"
+                                ></span>
+                            {:else if cellType === 'dropdown'}
+                                <span class="prev-cell">▾</span>
+                            {:else if cellType === 'rating'}
+                                <span class="prev-cell">★</span>
+                            {:else}
+                                <span class="prev-cell prev-cell--input"></span>
+                            {/if}
                         {/each}
                     {/each}
                 </div>

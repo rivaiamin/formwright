@@ -15,6 +15,7 @@
 import { extractReferences } from '../schema/logic-expression';
 import {
     blockById,
+    convertMatrixCellType,
     createElement,
     registry,
     resolveBlock,
@@ -1423,6 +1424,22 @@ export class BuilderStore {
             delete el[key];
         }
 
+        this.#markDirty();
+    }
+
+    /**
+     * Switch a simple Matrix between radio and other cell inputs. `radio` keeps
+     * the native single-select `matrix`; any other value stores it as a uniform
+     * `matrixdropdown` (see `convertMatrixCellType`). A discrete history entry.
+     */
+    setMatrixCellType(name: string, cellType: string): void {
+        const el = this.findElement(name)?.el;
+
+        if (!el) {
+            return;
+        }
+
+        convertMatrixCellType(el, cellType);
         this.#markDirty();
     }
 

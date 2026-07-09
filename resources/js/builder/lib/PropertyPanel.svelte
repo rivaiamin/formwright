@@ -1,5 +1,10 @@
 <script lang="ts">
-    import { resolveBlock } from '../../schema/type-registry';
+    import {
+        MATRIX_CELL_TYPES,
+        matrixCellNeedsChoices,
+        matrixCellTypeOf,
+        resolveBlock,
+    } from '../../schema/type-registry';
     import type {
         PropertyDescriptor,
         SurveyElement,
@@ -476,6 +481,29 @@
 
             <!-- MATRIX rows/columns -->
             {#if block?.id === 'matrix'}
+                {@const cellType = matrixCellTypeOf(el)}
+                {@const uniform = el.type === 'matrixdropdown'}
+                <p class="panel__section">Cell type</p>
+                <div class="field">
+                    <label class="field__label" for="matrix-cell-type"
+                        >Answer input</label
+                    >
+                    <select
+                        id="matrix-cell-type"
+                        data-testid="matrix-cell-type"
+                        value={cellType}
+                        onchange={(e) =>
+                            store.setMatrixCellType(
+                                el.name,
+                                e.currentTarget.value,
+                            )}
+                    >
+                        {#each MATRIX_CELL_TYPES as t (t.value)}
+                            <option value={t.value}>{t.label}</option>
+                        {/each}
+                    </select>
+                </div>
+
                 <p class="panel__section">Rows</p>
                 <ItemListEditor
                     {store}
@@ -490,10 +518,19 @@
                     {store}
                     element={el}
                     listKey="columns"
-                    primaryKey="value"
-                    labelKey="text"
+                    primaryKey={uniform ? 'name' : 'value'}
+                    labelKey={uniform ? 'title' : 'text'}
                     noun="Column"
                 />
+
+                {#if matrixCellNeedsChoices(cellType)}
+                    <p class="panel__section">Cell options</p>
+                    {@render control(el, {
+                        key: 'choices',
+                        label: 'Options shown in every cell',
+                        kind: 'choices',
+                    })}
+                {/if}
             {/if}
 
             <!-- TYPED-CELL MATRICES: columns (+ rows for matrixdropdown) -->
