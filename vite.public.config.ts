@@ -5,8 +5,12 @@ import { defineConfig } from 'vite';
 // -----------------------------------------------------------------------------
 // Standalone build for the PUBLIC form renderer (window.FormwrightForm.mount).
 //
-// Output goes straight into public/vendor/formwright so a plain Blade view can
-// reference it with asset(). Keep `publicDir: false` (see vite.designer.config).
+// Output lands in the package's own `public/` dir and is COMMITTED, so a third
+// party who `composer require`s the package gets a ready-to-serve bundle and
+// publishes it to their web root with:
+//   php artisan vendor:publish --tag=formwright-assets
+// (the host app's `npm run build:public` re-runs that publish automatically).
+// Keep `publicDir: false` (see vite.designer.config).
 //
 // Build:  npm run build:public
 // -----------------------------------------------------------------------------
@@ -14,7 +18,9 @@ export default defineConfig({
     plugins: [svelte()],
     publicDir: false,
     build: {
-        outDir: 'public/vendor/formwright',
+        // Package-relative so the committed bundle lands inside the package
+        // regardless of the cwd the build is invoked from.
+        outDir: fileURLToPath(new URL('./public', import.meta.url)),
         emptyOutDir: true,
         cssCodeSplit: false,
         lib: {

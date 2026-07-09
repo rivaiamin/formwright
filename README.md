@@ -100,13 +100,16 @@ php artisan vendor:publish --tag=formwright-migrations
 php artisan vendor:publish --tag=formwright-config
 ```
 
-### 4. Publish the builder assets
+### 4. Publish the assets
+
+Both bundles are shipped pre‑compiled — **no Node/npm toolchain required**.
 
 ```bash
-php artisan filament:assets
+php artisan filament:assets                          # the admin designer bundle
+php artisan vendor:publish --tag=formwright-assets   # the public form renderer → public/vendor/formwright
 ```
 
-See [Assets & frontend build](#assets--frontend-build) for the public‑form renderer bundle.
+Re‑run these after upgrading the package. See [Assets & frontend build](#assets--frontend-build) for details.
 
 ---
 
@@ -341,16 +344,19 @@ All model classes, table names, and the tenant column are configurable.
 
 ## Assets & frontend build
 
-Formwright ships **two** self‑mounting bundles built from the MIT runtime with Svelte:
+Formwright ships **two** self‑mounting bundles, both **pre‑compiled and committed** to the package — a consuming app never needs Node, npm, or a build step:
 
-- **Designer bundle** — compiled and committed to the package (`resources/js/builder/dist`). Registered with Filament's asset manager and published to your web root by `php artisan filament:assets`. Loaded on demand on the Designer page.
-- **Public‑form renderer** — built from `resources/js/public` via the bundled `vite.public.config.ts` and served from `public/vendor/formwright/formwright-form.{js,css}`:
+- **Designer bundle** (`resources/js/builder/dist`) — registered with Filament's asset manager; `php artisan filament:assets` copies it to your web root. Loaded on demand on the Designer page.
+- **Public‑form renderer** (`public/formwright-form.{js,css}`) — `php artisan vendor:publish --tag=formwright-assets` copies it to `public/vendor/formwright/`, where the public form Blade view loads it via `asset()`.
 
-  ```bash
-  npm run build:public
-  ```
+Both are IIFE bundles (`window.FormwrightDesigner` / `window.FormwrightForm`) that mount into a container.
 
-Both are IIFE bundles (`window.FormwrightDesigner` / `window.FormwrightForm`) that mount into a container — no host build‑tool integration required. To rebuild the designer bundle after changing its source: `npm run build:designer` then `php artisan filament:assets`.
+**Building from source** (only if you fork/modify the Svelte source) uses the bundled Vite configs:
+
+```bash
+npm run build:designer   # → resources/js/builder/dist, then run php artisan filament:assets
+npm run build:public     # → public/, then republish with --tag=formwright-assets
+```
 
 ---
 
