@@ -1,18 +1,19 @@
 <?php
 
-namespace App\Models;
+namespace Rivaiamin\Formwright\Models;
 
-use App\Models\Concerns\BelongsToTenant;
-use Database\Factories\FormSchemaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use Rivaiamin\Formwright\Database\Factories\FormSchemaFactory;
+use Rivaiamin\Formwright\Models\Concerns\BelongsToTenant;
 
 /**
  * A stored SurveyJS-compatible form definition.
  *
  * @property int $id
+ * @property int|null $tenant_id
  * @property string $name
  * @property string $slug
  * @property array<string, mixed> $json
@@ -33,6 +34,11 @@ class FormSchema extends Model
         'available_locales',
         'scoring_enabled',
     ];
+
+    protected static function newFactory(): FormSchemaFactory
+    {
+        return FormSchemaFactory::new();
+    }
 
     /**
      * @return array<string, string>

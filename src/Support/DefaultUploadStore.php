@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
-use App\Contracts\UploadStore;
-use App\Models\FormSchema;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Rivaiamin\Formwright\Contracts\UploadStore;
+use Rivaiamin\Formwright\Models\FormSchema;
+use RuntimeException;
 
 /**
  * Default {@see UploadStore}: writes uploads to the configured filesystem disk
@@ -23,6 +24,10 @@ class DefaultUploadStore implements UploadStore
         $filename = Str::uuid()->toString().'-'.$name;
 
         $path = $file->storeAs($this->directory($schema), $filename, ['disk' => $disk]);
+
+        if ($path === false) {
+            throw new RuntimeException("Failed to store uploaded file [{$name}].");
+        }
 
         return [
             'name' => $name,
