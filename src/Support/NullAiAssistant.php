@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
-use App\Contracts\AiAssistant;
+use Rivaiamin\Formwright\Contracts\AiAssistant;
 
 /**
  * Default {@see AiAssistant}: a no-op that signals the feature is not configured.

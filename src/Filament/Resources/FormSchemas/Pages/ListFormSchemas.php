@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\FormSchemas\Pages;
+namespace Rivaiamin\Formwright\Filament\Resources\FormSchemas\Pages;
 
-use App\Filament\Resources\FormSchemas\FormSchemaResource;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
+use Rivaiamin\Formwright\Filament\Resources\FormSchemas\FormSchemaResource;
 
 class ListFormSchemas extends ListRecords
 {

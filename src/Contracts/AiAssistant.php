@@ -1,11 +1,14 @@
 <?php
 
-namespace App\Contracts;
+namespace Rivaiamin\Formwright\Contracts;
+
+use Rivaiamin\Formwright\Support\AiAssistantNotConfiguredException;
+use Rivaiamin\Formwright\Support\NullAiAssistant;
 
 /**
  * Optional AI assistance: draft a whole form from a natural-language brief, or
- * rewrite a single field. Bound by default to {@see \App\Support\NullAiAssistant},
- * which throws {@see \App\Support\AiAssistantNotConfiguredException} — the feature
+ * rewrite a single field. Bound by default to {@see NullAiAssistant},
+ * which throws {@see AiAssistantNotConfiguredException} — the feature
  * is opt-in. A host app supplies its own (and its own provider/key):
  *
  *     $this->app->bind(AiAssistant::class, OpenAiAssistant::class);

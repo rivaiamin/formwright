@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Contracts;
+namespace Rivaiamin\Formwright\Contracts;
 
-use App\Models\FormSchema;
+use Rivaiamin\Formwright\Models\FormSchema;
+use Rivaiamin\Formwright\Support\DefaultUrlResolver;
 
 /**
  * Builds the URLs the package needs, so a host can host forms under its own
- * domain/path scheme. Bound to {@see \App\Support\DefaultUrlResolver} (named
+ * domain/path scheme. Bound to {@see DefaultUrlResolver} (named
  * route + asset()). Rebind to customise:
  *
  *     $this->app->bind(UrlResolver::class, MyUrlResolver::class);

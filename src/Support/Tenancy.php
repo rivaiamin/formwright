@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
-use App\Contracts\RuntimeContext;
 use Closure;
+use Rivaiamin\Formwright\Contracts\RuntimeContext;
 
 /**
  * Central place the tenant scope asks "is tenancy on, and what is the current

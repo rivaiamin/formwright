@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Filament\Resources\FormSchemas\Pages;
+namespace Rivaiamin\Formwright\Filament\Resources\FormSchemas\Pages;
 
-use App\Filament\Resources\FormSchemas\FormSchemaResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
+use Rivaiamin\Formwright\Filament\Resources\FormSchemas\FormSchemaResource;
 
 class EditFormSchema extends EditRecord
 {

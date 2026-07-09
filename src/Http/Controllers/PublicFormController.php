@@ -1,17 +1,18 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Rivaiamin\Formwright\Http\Controllers;
 
-use App\Contracts\AccessPolicy;
-use App\Contracts\RuntimeContext;
-use App\Contracts\SubmissionStore;
-use App\Contracts\UploadStore;
-use App\Models\FormSchema;
-use App\Support\SubmissionEvaluator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Routing\Controller;
+use Rivaiamin\Formwright\Contracts\AccessPolicy;
+use Rivaiamin\Formwright\Contracts\RuntimeContext;
+use Rivaiamin\Formwright\Contracts\SubmissionStore;
+use Rivaiamin\Formwright\Contracts\UploadStore;
+use Rivaiamin\Formwright\Models\FormSchema;
+use Rivaiamin\Formwright\Support\SubmissionEvaluator;
 
 class PublicFormController extends Controller
 {
@@ -32,7 +33,7 @@ class PublicFormController extends Controller
 
         $locale = (string) $request->query('locale', $schema->default_locale);
 
-        return view('public.form', [
+        return view('formwright::public.form', [
             'schema' => $schema,
             'locale' => $locale,
             'submitUrl' => route('formbuilder.forms.submit', $schema->slug),

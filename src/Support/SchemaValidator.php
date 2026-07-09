@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
 /**
  * Server-side gate for incoming SurveyJS survey JSON.
@@ -48,7 +48,7 @@ class SchemaValidator
         $seenNames = [];
 
         foreach ($schema['pages'] as $pageIndex => $page) {
-            $label = "page #".($pageIndex + 1);
+            $label = 'page #'.($pageIndex + 1);
 
             if (! is_array($page)) {
                 $errors[] = "{$label} must be an object.";

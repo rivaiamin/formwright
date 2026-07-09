@@ -1,17 +1,18 @@
 <?php
 
-namespace App\Models;
+namespace Rivaiamin\Formwright\Models;
 
-use App\Models\Concerns\BelongsToTenant;
-use Database\Factories\FormSubmissionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Rivaiamin\Formwright\Database\Factories\FormSubmissionFactory;
+use Rivaiamin\Formwright\Models\Concerns\BelongsToTenant;
 
 /**
  * A single response to a {@see FormSchema}.
  *
  * @property int $id
+ * @property int|null $tenant_id
  * @property int $form_schema_id
  * @property string $locale
  * @property array<string, mixed> $data
@@ -28,6 +29,11 @@ class FormSubmission extends Model
         'data',
         'score',
     ];
+
+    protected static function newFactory(): FormSubmissionFactory
+    {
+        return FormSubmissionFactory::new();
+    }
 
     /**
      * @return array<string, string>

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Models\Concerns;
+namespace Rivaiamin\Formwright\Models\Concerns;
 
-use App\Support\Tenancy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Rivaiamin\Formwright\Support\Tenancy;
 
 /**
  * Automatically scopes a model to the current tenant when tenancy is enabled:

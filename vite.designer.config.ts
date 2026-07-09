@@ -19,7 +19,10 @@ export default defineConfig({
     // mirrors all of public/ into dist.
     publicDir: false,
     build: {
-        outDir: 'resources/js/builder/dist',
+        // Package-relative (resolved from this config's location) so the committed
+        // designer bundle lands inside the package regardless of the cwd the build
+        // is invoked from.
+        outDir: fileURLToPath(new URL('./resources/js/builder/dist', import.meta.url)),
         emptyOutDir: true,
         cssCodeSplit: false,
         lib: {

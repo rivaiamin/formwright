@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
-use App\Contracts\AccessPolicy;
-use App\Models\FormSchema;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Rivaiamin\Formwright\Contracts\AccessPolicy;
+use Rivaiamin\Formwright\Models\FormSchema;
 
 /**
  * Default {@see AccessPolicy}: forms are publicly viewable and submittable, and

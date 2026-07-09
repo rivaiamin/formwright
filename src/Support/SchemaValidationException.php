@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
 use RuntimeException;
 

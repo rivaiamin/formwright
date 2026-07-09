@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
 use RuntimeException;
 
@@ -9,7 +9,7 @@ class AiAssistantNotConfiguredException extends RuntimeException
     public function __construct()
     {
         parent::__construct(
-            'No AI assistant is configured. Bind App\Contracts\AiAssistant to an implementation to enable AI features.'
+            'No AI assistant is configured. Bind Rivaiamin\Formwright\Contracts\AiAssistant to an implementation to enable AI features.'
         );
     }
 }

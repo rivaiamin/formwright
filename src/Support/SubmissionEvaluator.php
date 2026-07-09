@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
 /**
  * Server-side reasoning over a submission against its schema: which required

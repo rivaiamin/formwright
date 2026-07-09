@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Filament\Resources\FormSchemas\Pages;
+namespace Rivaiamin\Formwright\Filament\Resources\FormSchemas\Pages;
 
-use App\Filament\Pages\DesignerPage;
-use App\Filament\Resources\FormSchemas\FormSchemaResource;
-use App\Models\FormSchema;
 use Filament\Resources\Pages\CreateRecord;
+use Rivaiamin\Formwright\Filament\Pages\DesignerPage;
+use Rivaiamin\Formwright\Filament\Resources\FormSchemas\FormSchemaResource;
+use Rivaiamin\Formwright\Models\FormSchema;
 
 class CreateFormSchema extends CreateRecord
 {

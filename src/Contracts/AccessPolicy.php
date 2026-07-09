@@ -1,13 +1,14 @@
 <?php
 
-namespace App\Contracts;
+namespace Rivaiamin\Formwright\Contracts;
 
-use App\Models\FormSchema;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Rivaiamin\Formwright\Models\FormSchema;
+use Rivaiamin\Formwright\Support\DefaultAccessPolicy;
 
 /**
  * Authorization for a schema: who may view it, edit it in the designer, and
- * submit a response. Bound to {@see \App\Support\DefaultAccessPolicy} (public
+ * submit a response. Bound to {@see DefaultAccessPolicy} (public
  * view/submit, authenticated edit). A host app rebinds it to enforce its own
  * rules (ownership, publication state, tenancy):
  *

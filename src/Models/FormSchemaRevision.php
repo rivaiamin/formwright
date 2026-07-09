@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace Rivaiamin\Formwright\Models;
 
-use Database\Factories\FormSchemaRevisionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Foundation\Auth\User;
+use Rivaiamin\Formwright\Database\Factories\FormSchemaRevisionFactory;
 
 /**
  * A saved snapshot of a {@see FormSchema}'s JSON.
@@ -28,6 +29,11 @@ class FormSchemaRevision extends Model
         'user_id',
         'json',
     ];
+
+    protected static function newFactory(): FormSchemaRevisionFactory
+    {
+        return FormSchemaRevisionFactory::new();
+    }
 
     /**
      * @return array<string, string>
@@ -56,11 +62,17 @@ class FormSchemaRevision extends Model
     }
 
     /**
-     * @return BelongsTo<User, $this>
+     * The user who saved this revision, resolved against the app's configured
+     * auth model so the package does not depend on the host's User class.
+     *
+     * @return BelongsTo<Model, $this>
      */
     public function author(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id');
+        /** @var class-string<Model> $model */
+        $model = config('auth.providers.users.model', User::class);
+
+        return $this->belongsTo($model, 'user_id');
     }
 
     /** How many fields the snapshot contains, for the history list. */

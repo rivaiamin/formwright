@@ -1,12 +1,7 @@
 <?php
 
-namespace App\Filament\Resources\FormSchemas;
+namespace Rivaiamin\Formwright\Filament\Resources\FormSchemas;
 
-use App\Filament\Pages\DesignerPage;
-use App\Filament\Resources\FormSchemas\Pages\CreateFormSchema;
-use App\Filament\Resources\FormSchemas\Pages\EditFormSchema;
-use App\Filament\Resources\FormSchemas\Pages\ListFormSchemas;
-use App\Models\FormSchema;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -21,6 +16,11 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
+use Rivaiamin\Formwright\Filament\Pages\DesignerPage;
+use Rivaiamin\Formwright\Filament\Resources\FormSchemas\Pages\CreateFormSchema;
+use Rivaiamin\Formwright\Filament\Resources\FormSchemas\Pages\EditFormSchema;
+use Rivaiamin\Formwright\Filament\Resources\FormSchemas\Pages\ListFormSchemas;
+use Rivaiamin\Formwright\Models\FormSchema;
 
 class FormSchemaResource extends Resource
 {

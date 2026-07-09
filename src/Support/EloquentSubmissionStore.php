@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
-use App\Contracts\SubmissionStore;
-use App\Models\FormSchema;
-use App\Models\FormSubmission;
 use Illuminate\Support\Collection;
+use Rivaiamin\Formwright\Contracts\SubmissionStore;
+use Rivaiamin\Formwright\Models\FormSchema;
+use Rivaiamin\Formwright\Models\FormSubmission;
 
 /**
  * Default {@see SubmissionStore}: writes submissions to the configured Eloquent

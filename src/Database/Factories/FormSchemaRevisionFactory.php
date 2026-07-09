@@ -1,10 +1,10 @@
 <?php
 
-namespace Database\Factories;
+namespace Rivaiamin\Formwright\Database\Factories;
 
-use App\Models\FormSchema;
-use App\Models\FormSchemaRevision;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Rivaiamin\Formwright\Models\FormSchema;
+use Rivaiamin\Formwright\Models\FormSchemaRevision;
 
 /**
  * @extends Factory<FormSchemaRevision>

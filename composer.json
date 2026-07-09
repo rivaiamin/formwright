@@ -1,0 +1,37 @@
+{
+    "name": "rivaiamin/formwright",
+    "description": "Formwright — a SurveyJS-compatible visual form builder for FilamentPHP, built on the MIT survey-core runtime.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["laravel", "filament", "form-builder", "surveyjs", "forms"],
+    "require": {
+        "php": "^8.3",
+        "filament/filament": "^5.0",
+        "illuminate/contracts": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/database": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/http": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/routing": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/support": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/view": "^11.0 || ^12.0 || ^13.0"
+    },
+    "suggest": {
+        "spatie/laravel-google-cloud-storage": "Required only if you store uploaded files on Google Cloud Storage (FORMBUILDER_DISK=gcs)."
+    },
+    "autoload": {
+        "psr-4": {
+            "Rivaiamin\\Formwright\\": "src/",
+            "Rivaiamin\\Formwright\\Database\\Factories\\": "database/factories/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Rivaiamin\\Formwright\\FormwrightServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable"
+}

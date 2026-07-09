@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
-use App\Contracts\RuntimeContext;
+use Filament\Facades\Filament;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
+use Rivaiamin\Formwright\Contracts\RuntimeContext;
 
 /**
  * Default {@see RuntimeContext}: the authenticated user, the active Filament
@@ -20,12 +21,12 @@ class DefaultRuntimeContext implements RuntimeContext
 
     public function tenant(): ?Model
     {
-        if (! class_exists(\Filament\Facades\Filament::class)) {
+        if (! class_exists(Filament::class)) {
             return null;
         }
 
         try {
-            $tenant = \Filament\Facades\Filament::getTenant();
+            $tenant = Filament::getTenant();
         } catch (\Throwable) {
             return null;
         }

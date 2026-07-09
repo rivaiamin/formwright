@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Contracts;
+namespace Rivaiamin\Formwright\Contracts;
 
-use App\Models\FormSchema;
-use App\Models\FormSubmission;
 use Illuminate\Support\Collection;
+use Rivaiamin\Formwright\Models\FormSchema;
+use Rivaiamin\Formwright\Models\FormSubmission;
 
 /**
  * Persists and retrieves form submissions. Bound to a default Eloquent

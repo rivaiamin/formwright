@@ -1,16 +1,18 @@
 <?php
 
-namespace Database\Factories;
+namespace Rivaiamin\Formwright\Database\Factories;
 
-use App\Models\FormSchema;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
+use Rivaiamin\Formwright\Models\FormSchema;
 
 /**
  * @extends Factory<FormSchema>
  */
 class FormSchemaFactory extends Factory
 {
+    protected $model = FormSchema::class;
+
     /**
      * Define the model's default state.
      *

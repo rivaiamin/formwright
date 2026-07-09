@@ -1,16 +1,18 @@
 <?php
 
-namespace Database\Factories;
+namespace Rivaiamin\Formwright\Database\Factories;
 
-use App\Models\FormSchema;
-use App\Models\FormSubmission;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Rivaiamin\Formwright\Models\FormSchema;
+use Rivaiamin\Formwright\Models\FormSubmission;
 
 /**
  * @extends Factory<FormSubmission>
  */
 class FormSubmissionFactory extends Factory
 {
+    protected $model = FormSubmission::class;
+
     /**
      * Define the model's default state.
      *

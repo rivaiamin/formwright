@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
-use App\Contracts\AiAssistant;
 use Illuminate\Support\Facades\Http;
+use Rivaiamin\Formwright\Contracts\AiAssistant;
 use RuntimeException;
 
 /**

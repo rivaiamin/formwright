@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Support;
+namespace Rivaiamin\Formwright\Support;
 
-use App\Contracts\UrlResolver;
-use App\Models\FormSchema;
+use Rivaiamin\Formwright\Contracts\UrlResolver;
+use Rivaiamin\Formwright\Models\FormSchema;
 
 /**
  * Default {@see UrlResolver}: the configured public route + Laravel's asset().

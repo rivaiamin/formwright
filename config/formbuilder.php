@@ -1,8 +1,8 @@
 <?php
 
-use App\Models\FormSchema;
-use App\Models\FormSchemaRevision;
-use App\Models\FormSubmission;
+use Rivaiamin\Formwright\Models\FormSchema;
+use Rivaiamin\Formwright\Models\FormSchemaRevision;
+use Rivaiamin\Formwright\Models\FormSubmission;
 
 return [
 

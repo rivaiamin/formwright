@@ -1,18 +1,18 @@
 <?php
 
-namespace App\Filament\Pages;
+namespace Rivaiamin\Formwright\Filament\Pages;
 
-use App\Contracts\AiAssistant;
-use App\Models\FormSchema;
-use App\Models\FormSchemaRevision;
-use App\Support\AiAssistantNotConfiguredException;
-use App\Support\SchemaValidationException;
-use App\Support\SchemaValidator;
 use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Livewire\Attributes\Renderless;
+use Rivaiamin\Formwright\Contracts\AiAssistant;
+use Rivaiamin\Formwright\Models\FormSchema;
+use Rivaiamin\Formwright\Models\FormSchemaRevision;
+use Rivaiamin\Formwright\Support\AiAssistantNotConfiguredException;
+use Rivaiamin\Formwright\Support\SchemaValidationException;
+use Rivaiamin\Formwright\Support\SchemaValidator;
 use Throwable;
 
 /**
@@ -23,7 +23,7 @@ use Throwable;
  */
 class DesignerPage extends Page
 {
-    protected string $view = 'filament.pages.designer-page';
+    protected string $view = 'formwright::filament.pages.designer-page';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

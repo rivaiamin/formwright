@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Contracts;
+namespace Rivaiamin\Formwright\Contracts;
 
-use App\Models\FormSchema;
 use Illuminate\Http\UploadedFile;
+use Rivaiamin\Formwright\Models\FormSchema;
 
 /**
  * Stores a file uploaded from a public form (file / image / signature fields)
