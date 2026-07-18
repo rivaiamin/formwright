@@ -30,6 +30,8 @@
         schema: Record<string, unknown>;
         locales: string[];
         defaultLocale: string;
+        dataSources?: { key: string; label: string }[];
+        dataSourceUrl?: string;
         onSave?: (
             json: Record<string, unknown>,
         ) => SaveResult | Promise<SaveResult> | void;
@@ -44,6 +46,8 @@
         schema,
         locales,
         defaultLocale,
+        dataSources = [],
+        dataSourceUrl = '',
         onSave,
         onDirty,
         reload,
@@ -55,6 +59,8 @@
     const store = new BuilderStore(schema as SurveySchema, {
         locales,
         editingLocale: defaultLocale,
+        dataSources,
+        dataSourceUrl,
         onDirty,
     });
 

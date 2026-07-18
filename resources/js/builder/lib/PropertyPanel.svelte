@@ -83,14 +83,16 @@
             ),
     );
     /** Where a choice field's options come from. */
-    let choiceSource = $derived<'static' | 'question' | 'url'>(
+    let choiceSource = $derived<'static' | 'question' | 'url' | 'model'>(
         el == null
             ? 'static'
-            : 'choicesFromQuestion' in el
-              ? 'question'
-              : el.choicesByUrl
-                ? 'url'
-                : 'static',
+            : typeof el.dataSource === 'string'
+              ? 'model'
+              : 'choicesFromQuestion' in el
+                ? 'question'
+                : el.choicesByUrl
+                  ? 'url'
+                  : 'static',
     );
     let nameDesc = $derived(descByKey('name'));
     let advancedList = $derived(
@@ -326,13 +328,14 @@
                             store.setChoiceSource(
                                 el.name,
                                 e.currentTarget.value as
-                                    'static' | 'question' | 'url',
+                                    'static' | 'question' | 'url' | 'model',
                             )}
                     >
                         <option value="static">A fixed list</option>
                         <option value="question"
                             >Another question’s answers</option
                         >
+                        <option value="model">A Laravel model</option>
                         <option value="url">A web service (URL)</option>
                     </select>
                 </div>
@@ -392,6 +395,59 @@
                                 >
                             </select>
                         </div>
+                    {/if}
+                {:else if choiceSource === 'model'}
+                    {@const catalog = store.dataSourceCatalog()}
+                    {#if catalog.length === 0}
+                        <p class="panel__help">
+                            No data sources are configured. Add them in
+                            <code>config/formbuilder.php → data_sources</code>.
+                        </p>
+                    {:else}
+                        <div class="field">
+                            <label class="field__label" for="ds-key"
+                                >Source</label
+                            >
+                            <select
+                                id="ds-key"
+                                data-testid="data-source-key"
+                                value={String(el.dataSource ?? '')}
+                                onchange={(e) =>
+                                    store.setDataSource(
+                                        el.name,
+                                        e.currentTarget.value,
+                                    )}
+                            >
+                                {#each catalog as s (s.key)}<option
+                                        value={s.key}>{s.label}</option
+                                    >{/each}
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label class="field__label" for="ds-filter"
+                                >Filtered by (optional)</label
+                            >
+                            <select
+                                id="ds-filter"
+                                data-testid="data-filter-question"
+                                value={String(el.dataFilterQuestion ?? '')}
+                                onchange={(e) =>
+                                    store.setDataFilterQuestion(
+                                        el.name,
+                                        e.currentTarget.value,
+                                    )}
+                            >
+                                <option value="">— None —</option>
+                                {#each store.choiceQuestionNames(el.name) as n (n)}<option
+                                        value={n}>{n}</option
+                                    >{/each}
+                            </select>
+                        </div>
+                        <p class="panel__help">
+                            Options load from your app’s data. “Filtered by”
+                            narrows them by another field’s answer — a cascading
+                            (dependent) dropdown.
+                        </p>
                     {/if}
                 {:else if choiceSource === 'url'}
                     {@const cbu =

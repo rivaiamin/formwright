@@ -15,12 +15,14 @@ import {
     applyStoredTheme,
     registerCustomProperties,
 } from '../builder/survey-setup';
+import { wireDataSources } from '../schema/survey-data-source';
 
 interface MountOptions {
     schema: Record<string, unknown>;
     locale?: string;
     submitUrl: string;
     uploadUrl?: string;
+    dataSourceUrl?: string;
     csrf?: string;
 }
 
@@ -127,6 +129,10 @@ export function mount(el: HTMLElement, opts: MountOptions): void {
     }
 
     applyStoredTheme(model, opts.schema);
+
+    if (opts.dataSourceUrl) {
+        wireDataSources(model, { baseUrl: opts.dataSourceUrl });
+    }
 
     if (opts.uploadUrl) {
         wireUploads(model, opts.uploadUrl, opts.csrf);

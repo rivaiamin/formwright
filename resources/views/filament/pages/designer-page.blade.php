@@ -26,6 +26,8 @@
                     schema: @js($schema),
                     locales: @js($availableLocales),
                     defaultLocale: @js($defaultLocale),
+                    dataSources: @js($dataSources),
+                    dataSourceUrl: @js($dataSourceUrl),
                     onSave: (json) => this.$wire.saveSchema(json),
                     onDirty: (dirty) => this.$dispatch('formwright-dirty', { dirty }),
                     reload: () => this.$wire.loadSchema(),

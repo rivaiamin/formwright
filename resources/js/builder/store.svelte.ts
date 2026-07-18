@@ -191,6 +191,15 @@ function clone<T>(value: T): T {
 /** Element properties whose value is a nested list of elements. */
 const NESTED_KEYS = ['elements', 'templateElements'] as const;
 
+/** Choice types that support survey-core lazy loading (paged model-backed options). */
+const LAZY_CHOICE_TYPES = new Set(['dropdown', 'tagbox']);
+
+/** One configured model-backed choice source, as handed in from the host. */
+export interface DataSourceOption {
+    key: string;
+    label: string;
+}
+
 /** `base`, or `base_2`, `base_3`… until it is not already taken. */
 function uniqueName(base: string, taken: Set<string>): string {
     if (!taken.has(base)) {
@@ -312,6 +321,10 @@ export interface BuilderStoreOptions {
     locales?: string[];
     editingLocale?: string;
     onDirty?: (dirty: boolean) => void;
+    /** Model-backed choice sources the builder can offer (the config allowlist). */
+    dataSources?: DataSourceOption[];
+    /** Base URL the renderer appends a source key to when loading options. */
+    dataSourceUrl?: string;
 }
 
 export class BuilderStore {
@@ -320,6 +333,10 @@ export class BuilderStore {
     editingLocale = $state('default');
     /** Locales available for authoring/preview; always includes 'default'. */
     locales = $state<string[]>(['default']);
+    /** Configured model-backed choice sources, for the property panel picker. */
+    dataSources = $state<DataSourceOption[]>([]);
+    /** Base URL for loading model-backed options (empty when not configured). */
+    dataSourceUrl = $state('');
     rev = $state(0);
     dirty = $state(false);
     /** History availability, for the toolbar buttons. */
@@ -359,8 +376,15 @@ export class BuilderStore {
             new Set(['default', ...(options.locales ?? [])]),
         );
         this.editingLocale = options.editingLocale ?? 'default';
+        this.dataSources = options.dataSources ?? [];
+        this.dataSourceUrl = options.dataSourceUrl ?? '';
         this.#onDirty = options.onDirty;
         this.#resetHistory();
+    }
+
+    /** The configured model-backed choice sources, for the picker. */
+    dataSourceCatalog(): DataSourceOption[] {
+        return this.dataSources;
     }
 
     /** Add a locale to the authoring set (and switch to editing it). */
@@ -1300,29 +1324,50 @@ export class BuilderStore {
     }
 
     /** Switch where a field's choices come from, clearing the other sources. */
-    setChoiceSource(name: string, source: 'static' | 'question' | 'url'): void {
+    setChoiceSource(
+        name: string,
+        source: 'static' | 'question' | 'url' | 'model',
+    ): void {
         const el = this.findElement(name)?.el;
 
         if (!el) {
             return;
         }
 
-        if (source === 'static') {
+        // Every non-static source is mutually exclusive; clear the rest for clean
+        // JSON before seeding the chosen one.
+        const clearDynamic = (): void => {
             delete el.choicesByUrl;
             delete el.choicesFromQuestion;
             delete el.choicesFromQuestionMode;
+            delete el.dataSource;
+            delete el.dataFilterQuestion;
+            delete el.choicesLazyLoadEnabled;
+        };
+
+        if (source === 'static') {
+            clearDynamic();
         } else if (source === 'url') {
-            // A dynamic source supersedes any manual list; drop it for clean JSON.
             delete el.choices;
-            delete el.choicesFromQuestion;
-            delete el.choicesFromQuestionMode;
+            clearDynamic();
 
             if (!el.choicesByUrl || typeof el.choicesByUrl !== 'object') {
                 el.choicesByUrl = {};
             }
+        } else if (source === 'model') {
+            delete el.choices;
+            clearDynamic();
+
+            el.dataSource = this.dataSources[0]?.key ?? '';
+
+            // Only dropdown/tagbox support survey-core lazy loading; other choice
+            // types load their (typically small) list eagerly.
+            if (LAZY_CHOICE_TYPES.has(el.type)) {
+                el.choicesLazyLoadEnabled = true;
+            }
         } else {
             delete el.choices;
-            delete el.choicesByUrl;
+            clearDynamic();
 
             if (typeof el.choicesFromQuestion !== 'string') {
                 el.choicesFromQuestion =
@@ -1331,6 +1376,30 @@ export class BuilderStore {
         }
 
         this.#markDirty();
+    }
+
+    /** Set the model-backed source a field draws its options from. */
+    setDataSource(name: string, key: string): void {
+        const el = this.findElement(name)?.el;
+
+        if (!el) {
+            return;
+        }
+
+        assignPlain(el, 'dataSource', key);
+        this.#markDirty(`ds:${name}`);
+    }
+
+    /** Set (or clear, with '') the question whose answer filters the data source. */
+    setDataFilterQuestion(name: string, question: string): void {
+        const el = this.findElement(name)?.el;
+
+        if (!el) {
+            return;
+        }
+
+        assignPlain(el, 'dataFilterQuestion', question);
+        this.#markDirty(`dfq:${name}`);
     }
 
     /** Patch one property of `choicesByUrl` (url/path/valueName/titleName). */

@@ -46,6 +46,10 @@ export interface MountOptions {
     /** Locales available for authoring. */
     locales?: string[];
     defaultLocale?: string;
+    /** Model-backed choice sources (the config allowlist), for the picker. */
+    dataSources?: { key: string; label: string }[];
+    /** Base URL the builder appends a source key to when loading options. */
+    dataSourceUrl?: string;
     /** Persist a schema. Returns the Livewire result (or a promise of it). */
     onSave?: (
         json: Record<string, unknown>,
@@ -80,6 +84,8 @@ export function mount(el: Element, opts: MountOptions): SvelteApp {
             schema: opts.schema ?? {},
             locales: opts.locales ?? ['default'],
             defaultLocale: opts.defaultLocale ?? 'default',
+            dataSources: opts.dataSources ?? [],
+            dataSourceUrl: opts.dataSourceUrl ?? '',
             onSave: opts.onSave,
             onDirty: opts.onDirty,
             reload: opts.reload,

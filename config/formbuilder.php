@@ -117,6 +117,43 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Model-backed choice sources
+    |--------------------------------------------------------------------------
+    |
+    | Eloquent models a form field may pull its options from ("A Laravel model"
+    | in the builder's "Choices from" selector). This is an allowlist: only the
+    | keys declared here are reachable, and the browser only ever supplies a
+    | filter value, a search term and pagination — never a model class or column.
+    |
+    | Each entry:
+    |   'label'          Shown in the builder's source picker.
+    |   'model'          The Eloquent model class.
+    |   'value'          Column used as the option value.
+    |   'text'           Column used as the option label.
+    |   'filter_column'  (optional) Column matched against a parent field's value
+    |                    to cascade (e.g. cities filtered by the chosen country).
+    |   'search_columns' (optional) Columns searched server-side; defaults to [text].
+    |   'scope'          (optional) fn (Builder $q, RuntimeContext $ctx): Builder —
+    |                    a place to add tenancy / published-only constraints.
+    |   'limit'          (optional) Max rows returned per request. Default 50.
+    |
+    | Example:
+    |   'cities' => [
+    |       'label'         => 'Cities',
+    |       'model'         => App\Models\City::class,
+    |       'value'         => 'id',
+    |       'text'          => 'name',
+    |       'filter_column' => 'country_id',
+    |   ],
+    |
+    */
+
+    'data_sources' => [
+        //
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Localization
     |--------------------------------------------------------------------------
     |

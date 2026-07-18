@@ -8,6 +8,7 @@ use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
 use Livewire\Attributes\Renderless;
 use Rivaiamin\Formwright\Contracts\AiAssistant;
+use Rivaiamin\Formwright\Contracts\DataSourceResolver;
 use Rivaiamin\Formwright\Models\FormSchema;
 use Rivaiamin\Formwright\Models\FormSchemaRevision;
 use Rivaiamin\Formwright\Support\AiAssistantNotConfiguredException;
@@ -42,6 +43,12 @@ class DesignerPage extends Page
 
     public string $defaultLocale = 'default';
 
+    /** @var array<int, array{key: string, label: string}> Model-backed choice sources for the builder picker. */
+    public array $dataSources = [];
+
+    /** Base URL the builder appends a source key to when loading model-backed options. */
+    public string $dataSourceUrl = '';
+
     public function mount(): void
     {
         $requested = request()->integer('record');
@@ -56,6 +63,28 @@ class DesignerPage extends Page
         $this->schema = $record->json;
         $this->availableLocales = $record->available_locales ?: ['default'];
         $this->defaultLocale = $record->default_locale;
+        $this->dataSources = app(DataSourceResolver::class)->catalog();
+        $this->dataSourceUrl = $this->resolveDataSourceUrl($record);
+    }
+
+    /**
+     * The base URL the builder appends a source key to. Reuses the public
+     * per-slug data-source endpoint (Preview runs authenticated, so canView
+     * passes). Empty when the public routes are disabled.
+     */
+    protected function resolveDataSourceUrl(FormSchema $record): string
+    {
+        if (! config('formbuilder.routes.enabled', true)) {
+            return '';
+        }
+
+        $placeholder = '__FORMWRIGHT_KEY__';
+
+        return str_replace(
+            '/'.$placeholder,
+            '',
+            route('formbuilder.forms.data-source', ['slug' => $record->slug, 'key' => $placeholder]),
+        );
     }
 
     /**

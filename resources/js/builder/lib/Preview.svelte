@@ -14,6 +14,7 @@
     import 'survey-core/survey.i18n';
     import { renderSurvey } from 'survey-js-ui';
 
+    import { wireDataSources } from '../../schema/survey-data-source';
     import { isRtlLocale } from '../store.svelte';
     import type { BuilderStore } from '../store.svelte';
     import {
@@ -65,6 +66,7 @@
         const model = new Model(json);
         model.locale = locale === 'default' ? '' : locale;
         applyStoredTheme(model, json);
+        wireDataSources(model, { baseUrl: store.dataSourceUrl });
 
         // Live quiz tally: sum points of scored questions the respondent got right,
         // using survey-core's own answer comparison (isAnswerCorrect) and our custom

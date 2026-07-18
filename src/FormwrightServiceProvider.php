@@ -9,12 +9,14 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Rivaiamin\Formwright\Contracts\AccessPolicy;
 use Rivaiamin\Formwright\Contracts\AiAssistant;
+use Rivaiamin\Formwright\Contracts\DataSourceResolver;
 use Rivaiamin\Formwright\Contracts\RuntimeContext;
 use Rivaiamin\Formwright\Contracts\SubmissionStore;
 use Rivaiamin\Formwright\Contracts\UploadStore;
 use Rivaiamin\Formwright\Contracts\UrlResolver;
 use Rivaiamin\Formwright\Http\Controllers\PublicFormController;
 use Rivaiamin\Formwright\Support\ClaudeAiAssistant;
+use Rivaiamin\Formwright\Support\ConfigDataSourceResolver;
 use Rivaiamin\Formwright\Support\DefaultAccessPolicy;
 use Rivaiamin\Formwright\Support\DefaultRuntimeContext;
 use Rivaiamin\Formwright\Support\DefaultUploadStore;
@@ -45,6 +47,7 @@ class FormwrightServiceProvider extends ServiceProvider
         });
         $this->app->bind(UrlResolver::class, DefaultUrlResolver::class);
         $this->app->bind(UploadStore::class, DefaultUploadStore::class);
+        $this->app->bind(DataSourceResolver::class, ConfigDataSourceResolver::class);
     }
 
     /**
@@ -76,6 +79,9 @@ class FormwrightServiceProvider extends ServiceProvider
             ->group(function (): void {
                 Route::get('/{slug}', [PublicFormController::class, 'show'])->name('formbuilder.forms.show');
                 Route::post('/{slug}', [PublicFormController::class, 'submit'])->name('formbuilder.forms.submit');
+                Route::get('/{slug}/data-sources/{key}', [PublicFormController::class, 'dataSource'])
+                    ->middleware('throttle:'.config('formbuilder.uploads.throttle', '30,1'))
+                    ->name('formbuilder.forms.data-source');
                 Route::post('/{slug}/uploads', [PublicFormController::class, 'upload'])
                     ->middleware('throttle:'.config('formbuilder.uploads.throttle', '30,1'))
                     ->name('formbuilder.forms.upload');

@@ -24,6 +24,21 @@ export function registerCustomProperties(): void {
         category: 'general',
         visible: false,
     });
+
+    // Model-backed choice sources. Non-native properties that name a host data
+    // source and (optionally) the question whose answer filters it — resolved at
+    // render time via the data-source endpoint. Registered so they round-trip
+    // through `new Model(json)` and are readable as `question.dataSource`.
+    Serializer.addProperty('question', {
+        name: 'dataSource:string',
+        category: 'choices',
+        visible: false,
+    });
+    Serializer.addProperty('question', {
+        name: 'dataFilterQuestion:string',
+        category: 'choices',
+        visible: false,
+    });
 }
 
 /**

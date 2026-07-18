@@ -24,6 +24,7 @@
             locale: @json($locale),
             submitUrl: @json($submitUrl),
             uploadUrl: @json($uploadUrl),
+            dataSourceUrl: @json($dataSourceUrl),
             csrf: document.querySelector('meta[name=csrf-token]').getAttribute('content'),
         };
     </script>

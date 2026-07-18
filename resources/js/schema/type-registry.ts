@@ -37,6 +37,12 @@ export interface SurveyElement {
     requiredIf?: string;
     choices?: Choice[];
     inputType?: string;
+    /** Key of a host data source (config('formbuilder.data_sources')) feeding options. */
+    dataSource?: string;
+    /** Name of the question whose answer filters this field's data source (cascade). */
+    dataFilterQuestion?: string;
+    /** survey-core lazy-load flag, set for model-backed dropdown/tagbox fields. */
+    choicesLazyLoadEnabled?: boolean;
     [key: string]: unknown; // preserve anything we don't model
 }
 
