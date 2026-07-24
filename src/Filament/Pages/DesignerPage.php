@@ -9,6 +9,7 @@ use Filament\Support\Icons\Heroicon;
 use Livewire\Attributes\Renderless;
 use Rivaiamin\Formwright\Contracts\AiAssistant;
 use Rivaiamin\Formwright\Contracts\DataSourceResolver;
+use Rivaiamin\Formwright\Contracts\SharedBlockProvider;
 use Rivaiamin\Formwright\Models\FormSchema;
 use Rivaiamin\Formwright\Models\FormSchemaRevision;
 use Rivaiamin\Formwright\Support\AiAssistantNotConfiguredException;
@@ -49,6 +50,9 @@ class DesignerPage extends Page
     /** Base URL the builder appends a source key to when loading model-backed options. */
     public string $dataSourceUrl = '';
 
+    /** @var array<int, array{id: string, label: string, element: array<string, mixed>}> Insert-only shared library blocks. */
+    public array $sharedBlocks = [];
+
     public function mount(): void
     {
         $requested = request()->integer('record');
@@ -65,6 +69,7 @@ class DesignerPage extends Page
         $this->defaultLocale = $record->default_locale;
         $this->dataSources = app(DataSourceResolver::class)->catalog();
         $this->dataSourceUrl = $this->resolveDataSourceUrl($record);
+        $this->sharedBlocks = app(SharedBlockProvider::class)->blocks();
     }
 
     /**

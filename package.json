@@ -1,0 +1,22 @@
+{
+    "name": "formwright-builder",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build:designer": "vite build --config vite.designer.config.ts",
+        "build:public": "vite build --config vite.public.config.ts",
+        "build": "npm run build:designer && npm run build:public"
+    },
+    "dependencies": {
+        "survey-core": "1.12.63",
+        "survey-js-ui": "1.12.63",
+        "svelte-dnd-action": "^0.9.61"
+    },
+    "devDependencies": {
+        "@sveltejs/vite-plugin-svelte": "^5.0.3",
+        "svelte": "^5.19.0",
+        "typescript": "^5.7.3",
+        "vite": "^6.0.7",
+        "vitest": "^2.1.8"
+    }
+}

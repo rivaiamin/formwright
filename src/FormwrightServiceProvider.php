@@ -11,6 +11,7 @@ use Rivaiamin\Formwright\Contracts\AccessPolicy;
 use Rivaiamin\Formwright\Contracts\AiAssistant;
 use Rivaiamin\Formwright\Contracts\DataSourceResolver;
 use Rivaiamin\Formwright\Contracts\RuntimeContext;
+use Rivaiamin\Formwright\Contracts\SharedBlockProvider;
 use Rivaiamin\Formwright\Contracts\SubmissionStore;
 use Rivaiamin\Formwright\Contracts\UploadStore;
 use Rivaiamin\Formwright\Contracts\UrlResolver;
@@ -23,6 +24,7 @@ use Rivaiamin\Formwright\Support\DefaultUploadStore;
 use Rivaiamin\Formwright\Support\DefaultUrlResolver;
 use Rivaiamin\Formwright\Support\EloquentSubmissionStore;
 use Rivaiamin\Formwright\Support\NullAiAssistant;
+use Rivaiamin\Formwright\Support\NullSharedBlockProvider;
 
 class FormwrightServiceProvider extends ServiceProvider
 {
@@ -48,6 +50,7 @@ class FormwrightServiceProvider extends ServiceProvider
         $this->app->bind(UrlResolver::class, DefaultUrlResolver::class);
         $this->app->bind(UploadStore::class, DefaultUploadStore::class);
         $this->app->bind(DataSourceResolver::class, ConfigDataSourceResolver::class);
+        $this->app->bind(SharedBlockProvider::class, NullSharedBlockProvider::class);
     }
 
     /**

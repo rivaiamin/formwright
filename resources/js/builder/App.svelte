@@ -32,6 +32,8 @@
         defaultLocale: string;
         dataSources?: { key: string; label: string }[];
         dataSourceUrl?: string;
+        /** Server-provided shared question library (insert-only). */
+        sharedBlocks?: SavedBlock[];
         onSave?: (
             json: Record<string, unknown>,
         ) => SaveResult | Promise<SaveResult> | void;
@@ -48,6 +50,7 @@
         defaultLocale,
         dataSources = [],
         dataSourceUrl = '',
+        sharedBlocks = [],
         onSave,
         onDirty,
         reload,
@@ -370,7 +373,12 @@
 
     {#if tab === 'visual'}
         <div class="sv-grid">
-            <Palette onadd={addBlock} {library} oninsertsaved={insertSaved} />
+            <Palette
+                onadd={addBlock}
+                {library}
+                {sharedBlocks}
+                oninsertsaved={insertSaved}
+            />
             <div class="sv-canvas">
                 <Canvas {store} onsaveblock={saveBlock} />
             </div>

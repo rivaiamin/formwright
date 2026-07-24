@@ -50,6 +50,12 @@ export interface MountOptions {
     dataSources?: { key: string; label: string }[];
     /** Base URL the builder appends a source key to when loading options. */
     dataSourceUrl?: string;
+    /**
+     * Server-provided shared question library (insert-only). Each item is a
+     * ready-to-insert SurveyJS element the author can drop onto the form — the
+     * host supplies these from its own catalog (e.g. a cross-tenant question bank).
+     */
+    sharedBlocks?: { id: string; label: string; element: Record<string, unknown> }[];
     /** Persist a schema. Returns the Livewire result (or a promise of it). */
     onSave?: (
         json: Record<string, unknown>,
@@ -86,6 +92,7 @@ export function mount(el: Element, opts: MountOptions): SvelteApp {
             defaultLocale: opts.defaultLocale ?? 'default',
             dataSources: opts.dataSources ?? [],
             dataSourceUrl: opts.dataSourceUrl ?? '',
+            sharedBlocks: opts.sharedBlocks ?? [],
             onSave: opts.onSave,
             onDirty: opts.onDirty,
             reload: opts.reload,

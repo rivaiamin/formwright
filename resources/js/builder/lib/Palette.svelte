@@ -17,10 +17,12 @@
         onadd?: (blockId: string) => void;
         /** The reusable-block library, if enabled. */
         library?: BlockLibrary;
+        /** Server-provided shared question library (insert-only). */
+        sharedBlocks?: SavedBlock[];
         oninsertsaved?: (block: SavedBlock) => void;
     }
 
-    let { onadd, library, oninsertsaved }: Props = $props();
+    let { onadd, library, sharedBlocks = [], oninsertsaved }: Props = $props();
 
     function itemsFor(blocks: PaletteBlock[]): PaletteItem[] {
         return blocks.map((b) => ({
@@ -96,6 +98,26 @@
             {/each}
         </div>
     {/each}
+
+    {#if sharedBlocks.length > 0}
+        <p class="palette__group">Question library</p>
+        <div class="palette__list" data-testid="shared-blocks">
+            {#each sharedBlocks as block (block.id)}
+                <div class="palette__row">
+                    <button
+                        type="button"
+                        class="palette__chip"
+                        data-shared-block={block.id}
+                        title={`Insert ${block.label}`}
+                        onclick={() => oninsertsaved?.(block)}
+                    >
+                        <span class="palette__icon" aria-hidden="true">◆</span>
+                        {block.label}
+                    </button>
+                </div>
+            {/each}
+        </div>
+    {/if}
 
     {#if library && library.blocks.length > 0}
         <p class="palette__group">Saved blocks</p>

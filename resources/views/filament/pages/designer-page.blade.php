@@ -28,6 +28,7 @@
                     defaultLocale: @js($defaultLocale),
                     dataSources: @js($dataSources),
                     dataSourceUrl: @js($dataSourceUrl),
+                    sharedBlocks: @js($sharedBlocks),
                     onSave: (json) => this.$wire.saveSchema(json),
                     onDirty: (dirty) => this.$dispatch('formwright-dirty', { dirty }),
                     reload: () => this.$wire.loadSchema(),
