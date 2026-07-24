@@ -24,6 +24,28 @@
 
     let { onadd, library, sharedBlocks = [], oninsertsaved }: Props = $props();
 
+    // Question library can hold hundreds of entries — a flat list is unusable, so
+    // it's a search box: type to filter, results capped so the DOM stays small.
+    const LIBRARY_LIMIT = 20;
+    let query = $state('');
+    const libraryMatches = $derived.by(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) {
+            return [];
+        }
+        return sharedBlocks
+            .filter((b) => b.label.toLowerCase().includes(q))
+            .slice(0, LIBRARY_LIMIT);
+    });
+
+    function insertFirstMatch(): void {
+        const first = libraryMatches[0];
+        if (first) {
+            oninsertsaved?.(first);
+            query = '';
+        }
+    }
+
     function itemsFor(blocks: PaletteBlock[]): PaletteItem[] {
         return blocks.map((b) => ({
             id: `tpl:${b.id}`,
@@ -101,22 +123,45 @@
 
     {#if sharedBlocks.length > 0}
         <p class="palette__group">Question library</p>
-        <div class="palette__list" data-testid="shared-blocks">
-            {#each sharedBlocks as block (block.id)}
-                <div class="palette__row">
-                    <button
-                        type="button"
-                        class="palette__chip"
-                        data-shared-block={block.id}
-                        title={`Insert ${block.label}`}
-                        onclick={() => oninsertsaved?.(block)}
-                    >
-                        <span class="palette__icon" aria-hidden="true">◆</span>
-                        {block.label}
-                    </button>
-                </div>
-            {/each}
-        </div>
+        <input
+            class="palette__search"
+            type="search"
+            placeholder="Cari pertanyaan…"
+            aria-label="Search question library"
+            data-testid="shared-blocks-search"
+            bind:value={query}
+            onkeydown={(e) => e.key === 'Enter' && insertFirstMatch()}
+        />
+        {#if query.trim()}
+            <div class="palette__list" data-testid="shared-blocks">
+                {#each libraryMatches as block (block.id)}
+                    <div class="palette__row">
+                        <button
+                            type="button"
+                            class="palette__chip"
+                            data-shared-block={block.id}
+                            title={`Insert ${block.label}`}
+                            onclick={() => {
+                                oninsertsaved?.(block);
+                                query = '';
+                            }}
+                        >
+                            <span class="palette__icon" aria-hidden="true"
+                                >◆</span
+                            >
+                            {block.label}
+                        </button>
+                    </div>
+                {/each}
+                {#if libraryMatches.length === 0}
+                    <p class="palette__empty">Tidak ada yang cocok</p>
+                {:else if libraryMatches.length === LIBRARY_LIMIT}
+                    <p class="palette__empty">
+                        Menampilkan {LIBRARY_LIMIT} teratas — persempit pencarian
+                    </p>
+                {/if}
+            </div>
+        {/if}
     {/if}
 
     {#if library && library.blocks.length > 0}
@@ -212,6 +257,25 @@
         display: flex;
         color: #b45309;
         opacity: 0.9;
+    }
+    .palette__search {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0.4rem 0.55rem;
+        border-radius: 0.5rem;
+        border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+        background: color-mix(in srgb, currentColor 4%, transparent);
+        color: inherit;
+        font-size: 0.8rem;
+    }
+    .palette__search:focus {
+        outline: none;
+        border-color: #f59e0b;
+    }
+    .palette__empty {
+        margin: 0.15rem 0.1rem;
+        font-size: 0.72rem;
+        opacity: 0.55;
     }
     .palette__del {
         border: none;
