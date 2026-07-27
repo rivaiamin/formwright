@@ -3,6 +3,7 @@
         MATRIX_CELL_TYPES,
         matrixCellNeedsChoices,
         matrixCellTypeOf,
+        registry,
         resolveBlock,
     } from '../../schema/type-registry';
     import type {
@@ -53,6 +54,21 @@
     let el = $derived(store.selected);
     let block = $derived(el ? resolveBlock(el) : null);
     let locked = $derived(el != null && block == null);
+
+    /** Types offered by the "Field type" converter — flat fields only. Structural
+     *  containers are excluded: converting into one (or out of one) would silently
+     *  drop nested children. */
+    const STRUCTURAL = new Set([
+        'panel',
+        'panel_dynamic',
+        'matrix',
+        'matrix_dropdown',
+        'matrix_dynamic',
+    ]);
+    const TYPE_OPTIONS = registry
+        .filter((b) => !STRUCTURAL.has(b.id))
+        .map((b) => ({ id: b.id, label: b.label }));
+    let canChangeType = $derived(block != null && !STRUCTURAL.has(block.id));
     let showLogic = $state(false);
     let showScoring = $state(false);
     let showValidation = $state(false);
@@ -206,6 +222,24 @@
 
             <!-- BASICS -->
             <p class="panel__section">Basics</p>
+            {#if canChangeType && block}
+                <div class="field">
+                    <label class="field__label" for="prop-field-type"
+                        >Field type</label
+                    >
+                    <select
+                        id="prop-field-type"
+                        data-testid="field-type"
+                        value={block.id}
+                        onchange={(e) =>
+                            store.changeType(el.name, e.currentTarget.value)}
+                    >
+                        {#each TYPE_OPTIONS as opt (opt.id)}
+                            <option value={opt.id}>{opt.label}</option>
+                        {/each}
+                    </select>
+                </div>
+            {/if}
             {#if has('title')}
                 <LocalizedInput
                     {store}

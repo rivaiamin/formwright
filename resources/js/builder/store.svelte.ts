@@ -1060,6 +1060,41 @@ export class BuilderStore {
         return candidate;
     }
 
+    /**
+     * Convert a field to another block type in place, keeping its identity (name)
+     * and everything that survives the change: label, description, required flag,
+     * visibility rules, and — between two choice types — its choices. Anything
+     * type-specific (inputType, rateMax, columns, …) is dropped, since the new
+     * block's factory defines a clean shape. One undo step. Unknown/structural
+     * ids and non-existent fields are no-ops.
+     */
+    changeType(name: string, blockId: string): void {
+        const found = this.#locate(name);
+        const block = blockById(blockId);
+
+        if (!found || !block) {
+            return;
+        }
+
+        const old = found.el;
+        const next = block.factory(old.name);
+
+        for (const key of ['title', 'description', 'isRequired', 'visible', 'readOnly', 'visibleIf', 'enableIf', 'requiredIf'] as const) {
+            if (old[key] !== undefined) {
+                next[key] = old[key];
+            }
+        }
+
+        // Choices only carry across when both sides actually hold them.
+        if (Array.isArray(next.choices) && Array.isArray(old.choices)) {
+            next.choices = clone(old.choices);
+        }
+
+        found.container[found.index] = next;
+        this.#structuralChange();
+        this.select(next.name);
+    }
+
     // -- quiz scoring -----------------------------------------------------------
 
     /** True when the element is marked as scored (carries points/correctAnswer). */
