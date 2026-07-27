@@ -82,7 +82,8 @@
     <p class="palette__hint">Click to add or drag onto the form</p>
 
     {#each groups as group, gi (group.label)}
-        <p class="palette__group">{group.label}</p>
+        <details class="palette__acc" open>
+            <summary class="palette__group">{group.label}</summary>
         <div
             class="palette__list"
             use:dragHandleZone={{
@@ -119,9 +120,11 @@
                 </div>
             {/each}
         </div>
+        </details>
     {/each}
 
     {#if sharedBlocks.length > 0}
+        <div class="palette__library">
         <p class="palette__group">Question library</p>
         <input
             class="palette__search"
@@ -162,6 +165,7 @@
                 {/if}
             </div>
         {/if}
+        </div>
     {/if}
 
     {#if library && library.blocks.length > 0}
@@ -198,11 +202,37 @@
         display: flex;
         flex-direction: column;
         gap: 0.25rem;
+        /* Pin the palette so the question-library search stays reachable while the
+           canvas scrolls; scroll the palette itself when its content overflows. */
+        position: sticky;
+        top: 0.5rem;
+        align-self: start;
+        max-height: calc(100vh - 1rem);
+        overflow-y: auto;
     }
     .palette__hint {
         margin: 0 0 0.5rem;
         font-size: 0.75rem;
         opacity: 0.55;
+        order: -2;
+    }
+    /* The question library is the most-used section — float it to the top of the
+       sticky column so it needs no scrolling, without moving it in the DOM. */
+    .palette__library {
+        order: -1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-bottom: 0.35rem;
+    }
+    .palette__acc {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    .palette__acc > summary.palette__group {
+        cursor: pointer;
+        list-style: revert;
     }
     .palette__group {
         margin: 0.6rem 0 0.15rem;
